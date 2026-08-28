@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartPantry Pro - Receipt Scanner, Freshness & Price Optimizer</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .badge-critical { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+    .badge-warning { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .badge-fresh { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- TOP HEADER -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md">
+            <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xl font-bold text-slate-900 tracking-tight">SmartPantry</span>
+              <span class="text-xs uppercase font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full tracking-wider">Pro</span>
+            </div>
+            <p class="text-xs text-slate-500 hidden sm:block">Receipt Scanning, Spoilage Alerts & Price Optimization</p>
+          </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="flex items-center space-x-2">
+          <button onclick="openModal('receiptModal')" class="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+            <i data-lucide="scan" class="w-4 h-4"></i>
+            <span>Scan Receipt</span>
+          </button>
+          <button onclick="openModal('weeklyCheckinModal')" class="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg text-sm font-medium transition">
+            <i data-lucide="check-square" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Weekly Check-in</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 sm:space-x-8 overflow-x-auto py-2 border-t border-slate-100 no-scrollbar">
+        <button onclick="switchTab('inventory')" id="tab-btn-inventory" class="tab-btn active flex items-center space-x-2 py-2 px-3 text-sm font-medium border-b-2 border-emerald-600 text-emerald-700 whitespace-nowrap">
+          <i data-lucide="refrigerator" class="w-4 h-4"></i>
+          <span>Inventory & Spoilage</span>
+          <span id="badge-inventory-count" class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-semibold">0</span>
+        </button>
+        <button onclick="switchTab('priceComp')" id="tab-btn-priceComp" class="tab-btn flex items-center space-x-2 py-2 px-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">
+          <i data-lucide="trending-down" class="w-4 h-4"></i>
+          <span>Price Comparison & Savings</span>
+        </button>
+        <button onclick="switchTab('restockList')" id="tab-btn-restockList" class="tab-btn flex items-center space-x-2 py-2 px-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">
+          <i data-lucide="list-checks" class="w-4 h-4"></i>
+          <span>Smart Restock List</span>
+          <span id="badge-restock-count" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-semibold">0</span>
+        </button>
+        <button onclick="switchTab('receiptArchive')" id="tab-btn-receiptArchive" class="tab-btn flex items-center space-x-2 py-2 px-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">
+          <i data-lucide="receipt" class="w-4 h-4"></i>
+          <span>Receipt History</span>
+        </button>
+        <button onclick="switchTab('velocityAnalytics')" id="tab-btn-velocityAnalytics" class="tab-btn flex items-center space-x-2 py-2 px-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">
+          <i data-lucide="gauge" class="w-4 h-4"></i>
+          <span>Usage Velocity</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- KPI STATS SUMMARY CARDS -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Inventory</p>
+          <p id="kpi-total-items" class="text-2xl font-bold text-slate-900 mt-1">0</p>
+          <p id="kpi-total-categories" class="text-xs text-slate-400 mt-0.5">0 categories tracked</p>
+        </div>
+        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+          <i data-lucide="package" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Spoil Risk (&lt;3 Days)</p>
+          <p id="kpi-spoil-risk" class="text-2xl font-bold text-amber-600 mt-1">0</p>
+          <p class="text-xs text-slate-400 mt-0.5">Eat soon to prevent waste</p>
+        </div>
+        <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+          <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Potential Savings</p>
+          <p id="kpi-potential-savings" class="text-2xl font-bold text-emerald-600 mt-1">$0.00</p>
+          <p class="text-xs text-slate-400 mt-0.5">By store optimization</p>
+        </div>
+        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+          <i data-lucide="badge-dollar-sign" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Restock Needed</p>
+          <p id="kpi-restock-needed" class="text-2xl font-bold text-blue-600 mt-1">0</p>
+          <p class="text-xs text-slate-400 mt-0.5">Paced on consumption</p>
+        </div>
+        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+          <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: INVENTORY & SPOILAGE -->
+    <section id="tab-inventory" class="tab-content active space-y-6">
+      
+      <!-- Critical Spoilage Alerts Banner -->
+      <div id="spoilage-alert-box" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 shadow-sm">
+        <div class="flex items-start justify-between">
+          <div class="flex items-start space-x-3">
+            <div class="p-2 bg-red-100 text-red-700 rounded-lg mt-0.5">
+              <i data-lucide="flame" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-red-900">Action Needed: Food Items Spoilage Warning</h3>
+              <p id="spoilage-alert-text" class="text-xs text-red-700 mt-1">These items are expiring soon. Consider consuming or freezing them today.</p>
+              <div id="spoilage-urgent-chips" class="flex flex-wrap gap-2 mt-2.5">
+                <!-- dynamic chips inserted here -->
+              </div>
+            </div>
+          </div>
+          <button onclick="openModal('weeklyCheckinModal')" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition whitespace-nowrap">
+            Mark As Consumed
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls & Filters Bar -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2 flex-1">
+          <div class="relative flex-1 min-w-[200px] max-w-md">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="inventory-search" oninput="renderInventory()" placeholder="Search items (e.g., Milk, Salmon, Berries)..." class="w-full pl-9 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          
+          <select id="filter-freshness" onchange="renderInventory()" class="text-xs py-1.5 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="all">All Freshness Status</option>
+            <option value="critical">🔴 Critical / Expired (≤ 0d)</option>
+            <option value="warning">🟡 Use Soon (1 - 3d)</option>
+            <option value="fresh">🟢 Fresh (&gt; 3d)</option>
+          </select>
+
+          <select id="filter-category" onchange="renderInventory()" class="text-xs py-1.5 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="all">All Categories</option>
+            <option value="Produce">🥬 Produce</option>
+            <option value="Dairy & Eggs">🥛 Dairy & Eggs</option>
+            <option value="Meat & Seafood">🥩 Meat & Seafood</option>
+            <option value="Bakery">🍞 Bakery</option>
+            <option value="Pantry">🥫 Pantry</option>
+            <option value="Frozen">❄️ Frozen</option>
+            <option value="Beverages">🧃 Beverages</option>
+          </select>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="openModal('addItemModal')" class="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add Item Manually</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Inventory Table -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
+              <tr>
+                <th class="py-3.5 px-4">Item & Category</th>
+                <th class="py-3.5 px-4">Store & Price Paid</th>
+                <th class="py-3.5 px-4">Bought Date</th>
+                <th class="py-3.5 px-4">Freshness & Spoilage Countdown</th>
+                <th class="py-3.5 px-4 text-center">Status</th>
+                <th class="py-3.5 px-4 text-right">Quick Action</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="inventory-empty" class="hidden py-16 text-center">
+          <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="inbox" class="w-8 h-8"></i>
+          </div>
+          <h4 class="text-base font-semibold text-slate-800">No Inventory Items Found</h4>
+          <p class="text-sm text-slate-500 max-w-sm mx-auto mt-1">Scan a receipt or add items to track freshness, consumption velocity, and savings.</p>
+          <button onclick="openModal('receiptModal')" class="mt-4 inline-flex items-center space-x-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
+            <i data-lucide="camera" class="w-4 h-4"></i>
+            <span>Scan First Receipt</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: PRICE COMPARISON & SAVINGS ENGINE -->
+    <section id="tab-priceComp" class="tab-content space-y-6">
+      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Grocery Price Comparison & Savings Engine</h2>
+            <p class="text-sm text-slate-500 mt-0.5">Benchmark your recent grocery bills against competitor stores in Madeira Beach / St. Pete area.</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-semibold text-slate-500">Benchmark Store:</span>
+            <select id="benchmark-store-select" onchange="renderPriceComparison()" class="text-xs py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-700 focus:ring-2 focus:ring-emerald-500">
+              <option value="ALDI">ALDI (Deep Discount)</option>
+              <option value="Walmart">Walmart (Everyday Low Price)</option>
+              <option value="Trader Joe's">Trader Joe's</option>
+              <option value="Winn-Dixie">Winn-Dixie</option>
+              <option value="Publix">Publix</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <p class="text-xs font-semibold uppercase text-slate-500">Total Spent (Recorded)</p>
+            <p id="price-total-paid" class="text-2xl font-bold text-slate-900 mt-1">$0.00</p>
+            <p class="text-xs text-slate-400 mt-0.5">Across all uploaded receipts</p>
+          </div>
+          <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+            <p class="text-xs font-semibold uppercase text-emerald-700">Cost at Cheapest Store (ALDI)</p>
+            <p id="price-cheapest-cost" class="text-2xl font-bold text-emerald-800 mt-1">$0.00</p>
+            <p id="price-cheapest-pct" class="text-xs text-emerald-600 mt-0.5">Save up to 24% overall</p>
+          </div>
+          <div class="p-4 bg-teal-50 rounded-xl border border-teal-200">
+            <p class="text-xs font-semibold uppercase text-teal-700">Net Wallet Savings</p>
+            <p id="price-net-savings" class="text-2xl font-bold text-teal-800 mt-1">+$0.00</p>
+            <p class="text-xs text-teal-600 mt-0.5">Money you could keep in your pocket</p>
+          </div>
+        </div>
+
+        <!-- Store Comparison Chart -->
+        <div class="mt-8">
+          <h3 class="text-sm font-bold text-slate-900 mb-3">Cost Comparison of Your Grocery Baskets by Retailer</h3>
+          <div class="h-64 relative">
+            <canvas id="storeComparisonChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Item Differential Table -->
+        <div class="mt-8">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-slate-900">Item Price Differentials Across Stores</h3>
+            <span class="text-xs text-slate-400">Based on local Florida store averages</span>
+          </div>
+          <div class="overflow-x-auto border border-slate-200 rounded-xl">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Item Name</th>
+                  <th class="py-3 px-4">Category</th>
+                  <th class="py-3 px-4">You Paid</th>
+                  <th class="py-3 px-4">ALDI</th>
+                  <th class="py-3 px-4">Walmart</th>
+                  <th class="py-3 px-4">Publix</th>
+                  <th class="py-3 px-4">Best Store</th>
+                </tr>
+              </thead>
+              <tbody id="price-comparison-table-body" class="divide-y divide-slate-100">
+                <!-- dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: SMART RESTOCK LIST -->
+    <section id="tab-restockList" class="tab-content space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">Smart Shopping List</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Auto-populated based on consumption speed & depleted inventory.</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button onclick="autoGenerateRestockList()" class="flex items-center space-x-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>Auto-Generate</span>
+              </button>
+              <button onclick="clearCheckedRestock()" class="text-xs text-slate-500 hover:text-slate-800 px-2 py-1.5">
+                Clear Checked
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <input type="text" id="manual-restock-input" placeholder="Add custom item (e.g. Olive Oil, Garlic, Coffee)..." class="flex-1 text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <select id="manual-restock-category" class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-slate-700">
+              <option value="Produce">Produce</option>
+              <option value="Dairy & Eggs">Dairy & Eggs</option>
+              <option value="Meat & Seafood">Meat & Seafood</option>
+              <option value="Bakery">Bakery</option>
+              <option value="Pantry">Pantry</option>
+              <option value="Frozen">Frozen</option>
+              <option value="Beverages">Beverages</option>
+            </select>
+            <button onclick="addManualRestockItem()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">
+              Add
+            </button>
+          </div>
+
+          <div id="restock-items-container" class="divide-y divide-slate-100 min-h-[220px]">
+            <!-- dynamic items rendered here -->
+          </div>
+
+          <div id="restock-empty-state" class="hidden text-center py-12">
+            <i data-lucide="check-circle" class="w-10 h-10 text-emerald-500 mx-auto mb-2"></i>
+            <p class="text-sm font-semibold text-slate-800">All stocked up! No items on your list.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Click "Auto-Generate" to calculate items needed based on your usage speed.</p>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="bg-gradient-to-br from-emerald-700 to-teal-800 text-white p-5 rounded-xl shadow-md">
+            <div class="flex items-center justify-between">
+              <span class="text-xs uppercase font-bold tracking-wider text-emerald-200">Optimal Shopping Trip</span>
+              <span class="bg-emerald-500/30 text-white text-xs font-semibold px-2 py-0.5 rounded-full">Recommended Store</span>
+            </div>
+            <h3 id="restock-best-store" class="text-2xl font-black mt-2">ALDI</h3>
+            <p class="text-xs text-emerald-100 mt-1">Lowest total projected cost for your current list.</p>
+            
+            <div class="mt-4 pt-4 border-t border-emerald-600/50 flex items-center justify-between">
+              <div>
+                <p class="text-xs text-emerald-200">Estimated Basket</p>
+                <p id="restock-best-price" class="text-xl font-bold mt-0.5">$0.00</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-emerald-200">Estimated Savings</p>
+                <p id="restock-savings-vs-publix" class="text-sm font-semibold text-emerald-200 mt-0.5">Saves ~$14.20 vs. Publix</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <h4 class="text-xs font-bold uppercase text-slate-500 tracking-wider mb-3">Estimated Basket by Retailer</h4>
+            <div class="space-y-2.5 text-sm" id="restock-store-breakdown">
+              <!-- dynamic store totals -->
+            </div>
+          </div>
+
+          <div class="flex space-x-2">
+            <button onclick="copyRestockList()" class="flex-1 flex items-center justify-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 rounded-lg transition">
+              <i data-lucide="copy" class="w-4 h-4"></i>
+              <span>Copy Text List</span>
+            </button>
+            <button onclick="window.print()" class="flex items-center justify-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2.5 rounded-lg transition">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+              <span>Print</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: RECEIPT ARCHIVE -->
+    <section id="tab-receiptArchive" class="tab-content space-y-6">
+      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Scanned Receipt Archive</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Historical records of uploaded receipts, store totals, and pricing breakdowns.</p>
+          </div>
+          <button onclick="openModal('receiptModal')" class="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition">
+            <i data-lucide="upload" class="w-4 h-4"></i>
+            <span>Ingest New Receipt</span>
+          </button>
+        </div>
+
+        <div id="receipt-archive-list" class="space-y-4">
+          <!-- dynamic receipt cards -->
+        </div>
+
+        <div id="receipt-archive-empty" class="hidden text-center py-16">
+          <i data-lucide="receipt" class="w-12 h-12 text-slate-300 mx-auto mb-2"></i>
+          <p class="text-sm font-semibold text-slate-700">No receipts logged yet.</p>
+          <p class="text-xs text-slate-400 mt-1">Upload a photo of your receipt to start tracking items and savings.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: USAGE VELOCITY & ANALYTICS -->
+    <section id="tab-velocityAnalytics" class="tab-content space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Calculated Consumption Velocity</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Learned consumption pace from your weekly check-offs.</p>
+            </div>
+            <button onclick="openModal('weeklyCheckinModal')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-1.5 rounded-lg transition">
+              Check-In Now
+            </button>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-100 rounded-lg">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 uppercase text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-3">Item Name</th>
+                  <th class="py-3 px-3">Category</th>
+                  <th class="py-3 px-3">Avg Pace (Days / Unit)</th>
+                  <th class="py-3 px-3">Restock Cadence</th>
+                </tr>
+              </thead>
+              <tbody id="velocity-table-body" class="divide-y divide-slate-100">
+                <!-- dynamic velocity rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="text-base font-bold text-slate-900 mb-1">Consumption vs. Spoilage Efficiency</h3>
+          <p class="text-xs text-slate-500 mb-4">Percent of purchased groceries consumed before expiration.</p>
+          <div class="h-64 relative flex items-center justify-center">
+            <canvas id="efficiencyDonutChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: SCAN / INGEST RECEIPT -->
+  <div id="receiptModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
+            <i data-lucide="camera" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Receipt Ingestion & Scanner</h3>
+            <p class="text-xs text-slate-500">Upload receipt image or load simulated store data</p>
+          </div>
+        </div>
+        <button onclick="closeModal('receiptModal')" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-5 flex-1">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-500 mb-2">1. Choose Receipt Source</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/50 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition">
+              <i data-lucide="image-plus" class="w-8 h-8 text-slate-400 mb-2"></i>
+              <span class="text-xs font-bold text-slate-800">Take Photo / Upload Image</span>
+              <span class="text-[11px] text-slate-400 mt-0.5">JPEG, PNG, HEIC</span>
+              <input type="file" id="receipt-file-input" accept="image/*" capture="environment" onchange="handleReceiptImageUpload(event)" class="hidden">
+            </label>
+
+            <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 flex flex-col justify-between">
+              <span class="text-xs font-bold text-slate-700 mb-1">Or Load Sample Florida Receipt:</span>
+              <div class="space-y-1.5">
+                <button onclick="loadSampleReceipt('Publix')" class="w-full text-left text-xs bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 px-2.5 py-1.5 rounded-lg font-medium text-slate-700 flex items-center justify-between transition">
+                  <span>🥬 Publix (Madeira Beach)</span>
+                  <span class="text-emerald-600 font-bold">$42.75</span>
+                </button>
+                <button onclick="loadSampleReceipt('Walmart')" class="w-full text-left text-xs bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 px-2.5 py-1.5 rounded-lg font-medium text-slate-700 flex items-center justify-between transition">
+                  <span>🛒 Walmart Supercenter</span>
+                  <span class="text-emerald-600 font-bold">$34.10</span>
+                </button>
+                <button onclick="loadSampleReceipt('ALDI')" class="w-full text-left text-xs bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 px-2.5 py-1.5 rounded-lg font-medium text-slate-700 flex items-center justify-between transition">
+                  <span>🥑 ALDI (Seminole Blvd)</span>
+                  <span class="text-emerald-600 font-bold">$28.95</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 pt-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Store Name</label>
+            <input type="text" id="modal-receipt-store" value="Publix" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-medium">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Purchase Date</label>
+            <input type="date" id="modal-receipt-date" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-medium">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Total Bill ($)</label>
+            <input type="number" step="0.01" id="modal-receipt-total" value="0.00" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-bold text-slate-800">
+          </div>
+        </div>
+
+        <div id="receipt-scanning-spinner" class="hidden p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+          <div class="inline-block animate-spin w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full mb-1"></div>
+          <p class="text-xs font-semibold text-emerald-800">Scanning receipt text and identifying grocery items...</p>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-xs font-bold uppercase text-slate-500">2. Extracted Line Items & Shelf-Life</label>
+            <button onclick="addModalReceiptLineItem()" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center space-x-1">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+              <span>Add Line Item</span>
+            </button>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl overflow-hidden max-h-52 overflow-y-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 font-semibold text-slate-600 border-b border-slate-200 sticky top-0">
+                <tr>
+                  <th class="py-2 px-3">Item Name</th>
+                  <th class="py-2 px-2">Category</th>
+                  <th class="py-2 px-2 w-14">Qty</th>
+                  <th class="py-2 px-2 w-20">Price ($)</th>
+                  <th class="py-2 px-2 w-20">Life (Days)</th>
+                  <th class="py-2 px-2 w-8"></th>
+                </tr>
+              </thead>
+              <tbody id="modal-extracted-items-body" class="divide-y divide-slate-100">
+                <!-- dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end space-x-2">
+        <button onclick="closeModal('receiptModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">
+          Cancel
+        </button>
+        <button onclick="commitReceiptToInventory()" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm flex items-center space-x-1.5">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Add to Inventory & Calculate Savings</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: WEEKLY KITCHEN CHECK-IN -->
+  <div id="weeklyCheckinModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 bg-blue-100 text-blue-700 rounded-lg">
+            <i data-lucide="check-square" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Weekly Kitchen Check-In</h3>
+            <p class="text-xs text-slate-500">Check off items used up so the app learns your consumption velocity</p>
+          </div>
+        </div>
+        <button onclick="closeModal('weeklyCheckinModal')" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-4 flex-1">
+        <p class="text-xs text-slate-600 bg-blue-50 border border-blue-100 p-3 rounded-lg">
+          <strong>How this works:</strong> Select items you have consumed or partially used this week. The algorithm recalculates your average days-to-consume and automatically schedules smart restock notifications!
+        </p>
+
+        <div id="checkin-items-list" class="space-y-2">
+          <!-- dynamic items rendered here -->
+        </div>
+
+        <div id="checkin-empty" class="hidden py-8 text-center text-slate-400 text-xs">
+          No inventory items available to check off. Add items or scan a receipt first.
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+        <span class="text-xs text-slate-500" id="checkin-selected-count">0 items selected</span>
+        <div class="flex space-x-2">
+          <button onclick="closeModal('weeklyCheckinModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">
+            Close
+          </button>
+          <button onclick="submitWeeklyCheckin()" class="px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+            Complete Check-In & Update Restock List
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: ADD SINGLE MANUAL ITEM -->
+  <div id="addItemModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <h3 class="text-sm font-bold text-slate-900">Add Inventory Item</h3>
+        <button onclick="closeModal('addItemModal')" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Item Name</label>
+          <input type="text" id="manual-item-name" placeholder="e.g. Greek Yogurt, Strawberries" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Category</label>
+            <select id="manual-item-category" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+              <option value="Produce">Produce</option>
+              <option value="Dairy & Eggs">Dairy & Eggs</option>
+              <option value="Meat & Seafood">Meat & Seafood</option>
+              <option value="Bakery">Bakery</option>
+              <option value="Pantry">Pantry</option>
+              <option value="Frozen">Frozen</option>
+              <option value="Beverages">Beverages</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Shelf Life (Days)</label>
+            <input type="number" id="manual-item-shelflife" value="7" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Price Paid ($)</label>
+            <input type="number" step="0.01" id="manual-item-price" value="3.99" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Store</label>
+            <select id="manual-item-store" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+              <option value="Publix">Publix</option>
+              <option value="Walmart">Walmart</option>
+              <option value="ALDI">ALDI</option>
+              <option value="Trader Joe's">Trader Joe's</option>
+              <option value="Winn-Dixie">Winn-Dixie</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end space-x-2">
+        <button onclick="closeModal('addItemModal')" class="px-3.5 py-1.5 text-xs text-slate-600 hover:bg-slate-200 rounded-lg font-medium">Cancel</button>
+        <button onclick="commitManualItem()" class="px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold">Save Item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT LOGIC -->
+  <script>
+    // Standard shelf lives (days)
+    const DEFAULT_SHELF_LIVES = {
+      'Milk': 7,
+      'Whole Milk': 7,
+      'Eggs': 21,
+      'Large White Eggs': 21,
+      'Spinach': 5,
+      'Organic Baby Spinach': 5,
+      'Strawberries': 4,
+      'Fresh Strawberries': 4,
+      'Bananas': 6,
+      'Chicken Breast': 3,
+      'Fresh Chicken Breast': 3,
+      'Salmon Fillet': 2,
+      'Filet Mignon': 3,
+      'Ground Beef': 3,
+      'Sourdough Bread': 6,
+      'White Bread': 7,
+      'Greek Yogurt': 14,
+      'Cheddar Cheese': 28,
+      'Butter': 30,
+      'Broccoli': 7,
+      'Avocados': 5,
+      'Apples': 21,
+      'Pasta Sauce': 14,
+      'Orange Juice': 10,
+      'Bacon': 7
+    };
+
+    // Store Price Factors relative to Publix (Index = 1.00)
+    const STORE_PRICE_FACTORS = {
+      'ALDI': 0.76,         // ~24% cheaper
+      'Walmart': 0.82,      // ~18% cheaper
+      'Trader Joe\'s': 0.88, // ~12% cheaper
+      'Winn-Dixie': 0.94,   // ~6% cheaper
+      'Publix': 1.00        // Benchmark
+    };
+
+    // Sample Receipts for testing
+    const SAMPLE_RECEIPTS = {
+      'Publix': {
+        store: 'Publix',
+        total: 42.75,
+        items: [
+          { name: 'Organic Baby Spinach', category: 'Produce', qty: 1, price: 4.29, shelfLife: 5 },
+          { name: 'Fresh Strawberries (16oz)', category: 'Produce', qty: 1, price: 4.99, shelfLife: 4 },
+          { name: 'Large White Eggs (Dozen)', category: 'Dairy & Eggs', qty: 1, price: 3.89, shelfLife: 21 },
+          { name: 'Publix Whole Milk (Gallon)', category: 'Dairy & Eggs', qty: 1, price: 4.19, shelfLife: 7 },
+          { name: 'Boneless Chicken Breast (2 lb)', category: 'Meat & Seafood', qty: 1, price: 10.98, shelfLife: 3 },
+          { name: 'Bakery Sourdough Bread', category: 'Bakery', qty: 1, price: 4.49, shelfLife: 6 },
+          { name: 'Greek Yogurt (32oz)', category: 'Dairy & Eggs', qty: 1, price: 5.49, shelfLife: 14 },
+          { name: 'Avocados (Bag of 4)', category: 'Produce', qty: 1, price: 4.43, shelfLife: 5 }
+        ]
+      },
+      'Walmart': {
+        store: 'Walmart',
+        total: 34.10,
+        items: [
+          { name: 'Great Value Whole Milk (Gallon)', category: 'Dairy & Eggs', qty: 1, price: 3.12, shelfLife: 7 },
+          { name: 'Fresh Chicken Breast (2 lb)', category: 'Meat & Seafood', qty: 1, price: 7.96, shelfLife: 3 },
+          { name: 'Organic Baby Spinach (10oz)', category: 'Produce', qty: 1, price: 3.48, shelfLife: 5 },
+          { name: 'Large Eggs 18ct', category: 'Dairy & Eggs', qty: 1, price: 3.68, shelfLife: 21 },
+          { name: 'Strawberries (16oz)', category: 'Produce', qty: 1, price: 3.88, shelfLife: 4 },
+          { name: 'Sandwich Bread', category: 'Bakery', qty: 1, price: 2.24, shelfLife: 7 },
+          { name: 'Chobani Greek Yogurt', category: 'Dairy & Eggs', qty: 1, price: 4.98, shelfLife: 14 },
+          { name: 'Fresh Hass Avocados', category: 'Produce', qty: 1, price: 4.76, shelfLife: 5 }
+        ]
+      },
+      'ALDI': {
+        store: 'ALDI',
+        total: 28.95,
+        items: [
+          { name: 'Friendly Farms Whole Milk', category: 'Dairy & Eggs', qty: 1, price: 2.78, shelfLife: 7 },
+          { name: 'Fresh Chicken Tenderloins', category: 'Meat & Seafood', qty: 1, price: 6.89, shelfLife: 3 },
+          { name: 'Organic Baby Spinach (8oz)', category: 'Produce', qty: 1, price: 2.49, shelfLife: 5 },
+          { name: 'Goldhen Grade A Large Eggs', category: 'Dairy & Eggs', qty: 1, price: 2.95, shelfLife: 21 },
+          { name: 'Fresh California Strawberries', category: 'Produce', qty: 1, price: 2.99, shelfLife: 4 },
+          { name: 'L\'oven Fresh Artisanal Bread', category: 'Bakery', qty: 1, price: 2.89, shelfLife: 6 },
+          { name: 'Specially Selected Greek Yogurt', category: 'Dairy & Eggs', qty: 1, price: 4.19, shelfLife: 14 },
+          { name: 'Avocados 6pk', category: 'Produce', qty: 1, price: 3.77, shelfLife: 5 }
+        ]
+      }
+    };
+
+    let state = {
+      inventory: [],
+      receipts: [],
+      restockList: [],
+      velocity: {},
+      consumptionStats: { consumedCount: 0, spoiledCount: 0 }
+    };
+
+    function loadState() {
+      const saved = localStorage.getItem('smartpantry_data_v1');
+      if (saved) {
+        try {
+          state = JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to parse local storage', e);
+        }
+      }
+
+      if (!state.inventory || state.inventory.length === 0) {
+        seedInitialFloridaData();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem('smartpantry_data_v1', JSON.stringify(state));
+      renderAll();
+    }
+
+    function seedInitialFloridaData() {
+      const today = new Date();
+      const formatIso = (d) => d.toISOString().split('T')[0];
+
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(today.getDate() - 2);
+
+      const items = [
+        { id: 'item-1', name: 'Fresh Strawberries (16oz)', category: 'Produce', qty: 1, price: 4.99, store: 'Publix', boughtDate: formatIso(twoDaysAgo), shelfLife: 4 },
+        { id: 'item-2', name: 'Organic Baby Spinach', category: 'Produce', qty: 1, price: 4.29, store: 'Publix', boughtDate: formatIso(twoDaysAgo), shelfLife: 5 },
+        { id: 'item-3', name: 'Publix Whole Milk (Gallon)', category: 'Dairy & Eggs', qty: 1, price: 4.19, store: 'Publix', boughtDate: formatIso(twoDaysAgo), shelfLife: 7 },
+        { id: 'item-4', name: 'Boneless Chicken Breast (2 lb)', category: 'Meat & Seafood', qty: 1, price: 10.98, store: 'Publix', boughtDate: formatIso(twoDaysAgo), shelfLife: 3 },
+        { id: 'item-5', name: 'Large White Eggs (Dozen)', category: 'Dairy & Eggs', qty: 1, price: 3.89, store: 'Publix', boughtDate: formatIso(twoDaysAgo), shelfLife: 21 },
+        { id: 'item-6', name: 'Bakery Sourdough Bread', category: 'Bakery', qty: 1, price: 4.49, store: 'Publix', boughtDate: formatIso(twoDaysAgo), shelfLife: 6 },
+        { id: 'item-7', name: 'Greek Yogurt (32oz)', category: 'Dairy & Eggs', qty: 1, price: 5.49, store: 'Publix', boughtDate: formatIso(twoDaysAgo), shelfLife: 14 }
+      ];
+
+      state.inventory = items;
+      state.receipts = [{
+        id: 'rec-1',
+        store: 'Publix - Madeira Beach',
+        date: formatIso(twoDaysAgo),
+        total: 38.32,
+        itemCount: items.length,
+        items: items
+      }];
+
+      state.velocity = {
+        'Whole Milk': { avgDays: 6, count: 3 },
+        'Organic Baby Spinach': { avgDays: 4, count: 2 },
+        'Eggs': { avgDays: 12, count: 4 },
+        'Chicken Breast': { avgDays: 3, count: 3 },
+        'Sourdough Bread': { avgDays: 5, count: 2 }
+      };
+
+      state.consumptionStats = { consumedCount: 18, spoiledCount: 2 };
+      state.restockList = [];
+    }
+
+    function calculateDaysRemaining(boughtDateStr, shelfLifeDays) {
+      const bought = new Date(boughtDateStr);
+      const expiry = new Date(bought);
+      expiry.setDate(bought.getDate() + parseInt(shelfLifeDays));
+      
+      const now = new Date();
+      now.setHours(0,0,0,0);
+      expiry.setHours(0,0,0,0);
+
+      const diffTime = expiry.getTime() - now.getTime();
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    function getFreshnessStatus(daysRemaining) {
+      if (daysRemaining <= 0) return { label: 'Expired / Critical', code: 'critical', badgeClass: 'badge-critical', icon: 'alert-circle' };
+      if (daysRemaining <= 3) return { label: `${daysRemaining}d left (Use Soon)`, code: 'warning', badgeClass: 'badge-warning', icon: 'clock' };
+      return { label: `${daysRemaining}d left (Fresh)`, code: 'fresh', badgeClass: 'badge-fresh', icon: 'check-circle' };
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'border-emerald-600', 'text-emerald-700');
+        btn.classList.add('border-transparent', 'text-slate-500');
+      });
+
+      const target = document.getElementById(`tab-${tabId}`);
+      const targetBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (target) target.classList.add('active');
+      if (targetBtn) {
+        targetBtn.classList.add('active', 'border-emerald-600', 'text-emerald-700');
+        targetBtn.classList.remove('border-transparent', 'text-slate-500');
+      }
+
+      if (tabId === 'priceComp') renderPriceComparison();
+      if (tabId === 'velocityAnalytics') renderVelocityAnalytics();
+      lucide.createIcons();
+    }
+
+    function renderAll() {
+      renderKPIs();
+      renderInventory();
+      renderPriceComparison();
+      renderRestockList();
+      renderReceiptArchive();
+      renderVelocityAnalytics();
+      lucide.createIcons();
+    }
+
+    function renderKPIs() {
+      const totalItems = state.inventory.length;
+      const categories = new Set(state.inventory.map(i => i.category)).size;
+      
+      let spoilRiskCount = 0;
+      const urgentItems = [];
+
+      state.inventory.forEach(item => {
+        const days = calculateDaysRemaining(item.boughtDate, item.shelfLife);
+        if (days <= 3) {
+          spoilRiskCount++;
+          urgentItems.push({ ...item, daysLeft: days });
+        }
+      });
+
+      let totalSpent = 0;
+      let totalIfAldi = 0;
+      state.inventory.forEach(item => {
+        const p = parseFloat(item.price) || 0;
+        totalSpent += p;
+        totalIfAldi += p * (STORE_PRICE_FACTORS['ALDI'] / (STORE_PRICE_FACTORS[item.store] || 1.0));
+      });
+      const potentialSavings = Math.max(0, totalSpent - totalIfAldi);
+
+      document.getElementById('kpi-total-items').textContent = totalItems;
+      document.getElementById('kpi-total-categories').textContent = `${categories} categories tracked`;
+      document.getElementById('kpi-spoil-risk').textContent = spoilRiskCount;
+      document.getElementById('kpi-potential-savings').textContent = `$${potentialSavings.toFixed(2)}`;
+      document.getElementById('kpi-restock-needed').textContent = state.restockList.length;
+
+      document.getElementById('badge-inventory-count').textContent = totalItems;
+      document.getElementById('badge-restock-count').textContent = state.restockList.length;
+
+      const spoilBox = document.getElementById('spoilage-alert-box');
+      const urgentChips = document.getElementById('spoilage-urgent-chips');
+      
+      if (spoilRiskCount > 0) {
+        spoilBox.classList.remove('hidden');
+        urgentChips.innerHTML = urgentItems.map(item => `
+          <span class="inline-flex items-center space-x-1 text-xs font-semibold px-2.5 py-1 rounded-md ${item.daysLeft <= 0 ? 'bg-red-200 text-red-900 border border-red-300' : 'bg-amber-200 text-amber-900 border border-amber-300'}">
+            <span>${item.name}</span>
+            <span class="font-bold">(${item.daysLeft <= 0 ? 'Expired' : item.daysLeft + 'd left'})</span>
+          </span>
+        `).join('');
+      } else {
+        spoilBox.classList.add('hidden');
+      }
+    }
+
+    function renderInventory() {
+      const search = document.getElementById('inventory-search')?.value.toLowerCase() || '';
+      const filterFresh = document.getElementById('filter-freshness')?.value || 'all';
+      const filterCat = document.getElementById('filter-category')?.value || 'all';
+
+      const tbody = document.getElementById('inventory-table-body');
+      const emptyState = document.getElementById('inventory-empty');
+      if (!tbody) return;
+
+      const filtered = state.inventory.filter(item => {
+        const days = calculateDaysRemaining(item.boughtDate, item.shelfLife);
+        const status = getFreshnessStatus(days);
+
+        const matchSearch = item.name.toLowerCase().includes(search) || item.category.toLowerCase().includes(search);
+        const matchCat = filterCat === 'all' || item.category === filterCat;
+        const matchFresh = filterFresh === 'all' || status.code === filterFresh;
+
+        return matchSearch && matchCat && matchFresh;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      filtered.sort((a, b) => {
+        const da = calculateDaysRemaining(a.boughtDate, a.shelfLife);
+        const db = calculateDaysRemaining(b.boughtDate, b.shelfLife);
+        return da - db;
+      });
+
+      tbody.innerHTML = filtered.map(item => {
+        const daysLeft = calculateDaysRemaining(item.boughtDate, item.shelfLife);
+        const status = getFreshnessStatus(daysLeft);
+        const pctRemaining = Math.max(0, Math.min(100, Math.round((daysLeft / item.shelfLife) * 100)));
+
+        return `
+          <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+            <td class="py-3 px-4">
+              <div class="font-semibold text-slate-800">${item.name}</div>
+              <div class="text-xs text-slate-400 flex items-center space-x-1 mt-0.5">
+                <span>${getCategoryEmoji(item.category)}</span>
+                <span>${item.category}</span>
+              </div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="font-bold text-slate-800">$${parseFloat(item.price).toFixed(2)}</div>
+              <span class="text-[11px] text-slate-400">${item.store || 'Publix'}</span>
+            </td>
+            <td class="py-3 px-4 text-xs text-slate-500 font-medium">
+              ${item.boughtDate}
+            </td>
+            <td class="py-3 px-4 min-w-[180px]">
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-medium ${daysLeft <= 1 ? 'text-red-700 font-bold' : daysLeft <= 3 ? 'text-amber-700 font-bold' : 'text-slate-600'}">
+                  ${daysLeft <= 0 ? 'Expired' : `${daysLeft} days remaining`}
+                </span>
+                <span class="text-[11px] text-slate-400">${item.shelfLife}d total life</span>
+              </div>
+              <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-300 ${daysLeft <= 0 ? 'bg-red-600' : daysLeft <= 3 ? 'bg-amber-500' : 'bg-emerald-500'}" style="width: ${pctRemaining}%"></div>
+              </div>
+            </td>
+            <td class="py-3 px-4 text-center">
+              <span class="inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${status.badgeClass}">
+                ${status.label}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right">
+              <div class="flex items-center justify-end space-x-1.5">
+                <button onclick="quickConsumeItem('${item.id}')" title="Mark as Eaten / Consumed" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition">
+                  <i data-lucide="check" class="w-4 h-4"></i>
+                </button>
+                <button onclick="quickDiscardItem('${item.id}')" title="Remove / Discard" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function getCategoryEmoji(cat) {
+      switch(cat) {
+        case 'Produce': return '🥬';
+        case 'Dairy & Eggs': return '🥛';
+        case 'Meat & Seafood': return '🥩';
+        case 'Bakery': return '🍞';
+        case 'Pantry': return '🥫';
+        case 'Frozen': return '❄️';
+        case 'Beverages': return '🧃';
+        default: return '🛒';
+      }
+    }
+
+    let storeChartInstance = null;
+    function renderPriceComparison() {
+      let totalPaid = 0;
+      const storeTotals = {
+        'ALDI': 0,
+        'Walmart': 0,
+        'Trader Joe\'s': 0,
+        'Winn-Dixie': 0,
+        'Publix': 0
+      };
+
+      const rows = state.inventory.map(item => {
+        const paid = parseFloat(item.price) || 0;
+        totalPaid += paid;
+        
+        const basePublixPrice = paid / (STORE_PRICE_FACTORS[item.store] || 1.0);
+
+        const aldiPrice = basePublixPrice * STORE_PRICE_FACTORS['ALDI'];
+        const walmartPrice = basePublixPrice * STORE_PRICE_FACTORS['Walmart'];
+        const publixPrice = basePublixPrice * STORE_PRICE_FACTORS['Publix'];
+        const tjPrice = basePublixPrice * STORE_PRICE_FACTORS['Trader Joe\'s'];
+        const wdPrice = basePublixPrice * STORE_PRICE_FACTORS['Winn-Dixie'];
+
+        storeTotals['ALDI'] += aldiPrice;
+        storeTotals['Walmart'] += walmartPrice;
+        storeTotals['Trader Joe\'s'] += tjPrice;
+        storeTotals['Winn-Dixie'] += wdPrice;
+        storeTotals['Publix'] += publixPrice;
+
+        return {
+          name: item.name,
+          category: item.category,
+          paid: paid,
+          aldi: aldiPrice,
+          walmart: walmartPrice,
+          publix: publixPrice
+        };
+      });
+
+      const cheapestStoreCost = storeTotals['ALDI'];
+      const netSavings = Math.max(0, totalPaid - cheapestStoreCost);
+
+      const paidEl = document.getElementById('price-total-paid');
+      const cheapEl = document.getElementById('price-cheapest-cost');
+      const netEl = document.getElementById('price-net-savings');
+
+      if (paidEl) paidEl.textContent = `$${totalPaid.toFixed(2)}`;
+      if (cheapEl) cheapEl.textContent = `$${cheapestStoreCost.toFixed(2)}`;
+      if (netEl) netEl.textContent = `+$${netSavings.toFixed(2)}`;
+
+      const tbody = document.getElementById('price-comparison-table-body');
+      if (tbody) {
+        tbody.innerHTML = rows.map(r => `
+          <tr class="hover:bg-slate-50 border-b border-slate-100">
+            <td class="py-2.5 px-4 font-semibold text-slate-800">${r.name}</td>
+            <td class="py-2.5 px-4 text-xs text-slate-500">${r.category}</td>
+            <td class="py-2.5 px-4 font-bold text-slate-900">$${r.paid.toFixed(2)}</td>
+            <td class="py-2.5 px-4 font-medium text-emerald-700 bg-emerald-50/50">$${r.aldi.toFixed(2)}</td>
+            <td class="py-2.5 px-4 text-slate-700">$${r.walmart.toFixed(2)}</td>
+            <td class="py-2.5 px-4 text-slate-700">$${r.publix.toFixed(2)}</td>
+            <td class="py-2.5 px-4">
+              <span class="inline-flex items-center space-x-1 text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                <span>ALDI</span>
+              </span>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      const ctx = document.getElementById('storeComparisonChart');
+      if (ctx) {
+        if (storeChartInstance) storeChartInstance.destroy();
+        storeChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['ALDI', 'Walmart', 'Trader Joe\'s', 'Winn-Dixie', 'Publix (Benchmark)'],
+            datasets: [{
+              label: 'Total Grocery Basket Cost ($)',
+              data: [
+                storeTotals['ALDI'],
+                storeTotals['Walmart'],
+                storeTotals['Trader Joe\'s'],
+                storeTotals['Winn-Dixie'],
+                storeTotals['Publix']
+              ],
+              backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#64748b'],
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { callback: v => '$' + v.toFixed(0) }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function renderRestockList() {
+      const container = document.getElementById('restock-items-container');
+      const empty = document.getElementById('restock-empty-state');
+      if (!container) return;
+
+      if (state.restockList.length === 0) {
+        container.innerHTML = '';
+        empty.classList.remove('hidden');
+        updateRestockStoreBreakdown([]);
+        return;
+      }
+
+      empty.classList.add('hidden');
+      container.innerHTML = state.restockList.map((item, idx) => `
+        <div class="py-3 flex items-center justify-between group">
+          <label class="flex items-center space-x-3 cursor-pointer flex-1">
+            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleRestockItem(${idx})" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+            <span class="${item.checked ? 'line-through text-slate-400' : 'font-medium text-slate-800'} text-sm">${item.name}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">${item.category || 'General'}</span>
+            ${item.autoAdded ? '<span class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Smart Auto</span>' : ''}
+          </label>
+          <button onclick="removeRestockItem(${idx})" class="text-slate-300 hover:text-red-500 p-1 rounded opacity-0 group-hover:opacity-100 transition">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+
+      updateRestockStoreBreakdown(state.restockList.filter(i => !i.checked));
+      lucide.createIcons();
+    }
+
+    function updateRestockStoreBreakdown(activeItems) {
+      const estPublixBase = activeItems.length * 4.25;
+      
+      const aldiTotal = estPublixBase * STORE_PRICE_FACTORS['ALDI'];
+      const walmartTotal = estPublixBase * STORE_PRICE_FACTORS['Walmart'];
+      const publixTotal = estPublixBase * STORE_PRICE_FACTORS['Publix'];
+
+      document.getElementById('restock-best-price').textContent = `$${aldiTotal.toFixed(2)}`;
+      document.getElementById('restock-savings-vs-publix').textContent = `Saves ~$${Math.max(0, publixTotal - aldiTotal).toFixed(2)} vs. Publix`;
+
+      const breakdown = document.getElementById('restock-store-breakdown');
+      if (breakdown) {
+        breakdown.innerHTML = `
+          <div class="flex items-center justify-between py-1 border-b border-slate-100">
+            <span class="font-medium text-emerald-700">🥑 ALDI (Recommended)</span>
+            <span class="font-bold text-emerald-800">$${aldiTotal.toFixed(2)}</span>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-slate-100">
+            <span class="text-slate-600">🛒 Walmart Supercenter</span>
+            <span class="font-semibold text-slate-800">$${walmartTotal.toFixed(2)}</span>
+          </div>
+          <div class="flex items-center justify-between py-1">
+            <span class="text-slate-600">🥬 Publix</span>
+            <span class="font-semibold text-slate-800">$${publixTotal.toFixed(2)}</span>
+          </div>
+        `;
+      }
+    }
+
+    function toggleRestockItem(idx) {
+      state.restockList[idx].checked = !state.restockList[idx].checked;
+      saveState();
+    }
+
+    function removeRestockItem(idx) {
+      state.restockList.splice(idx, 1);
+      saveState();
+    }
+
+    function clearCheckedRestock() {
+      state.restockList = state.restockList.filter(i => !i.checked);
+      saveState();
+    }
+
+    function addManualRestockItem() {
+      const input = document.getElementById('manual-restock-input');
+      const cat = document.getElementById('manual-restock-category').value;
+      if (!input || !input.value.trim()) return;
+
+      state.restockList.push({
+        name: input.value.trim(),
+        category: cat,
+        checked: false,
+        autoAdded: false
+      });
+
+      input.value = '';
+      saveState();
+    }
+
+    function autoGenerateRestockList() {
+      const toRestock = new Set(state.restockList.map(i => i.name.toLowerCase()));
+      let added = 0;
+
+      Object.keys(state.velocity).forEach(itemName => {
+        if (!toRestock.has(itemName.toLowerCase())) {
+          const inPantry = state.inventory.some(i => i.name.toLowerCase().includes(itemName.toLowerCase()));
+          if (!inPantry) {
+            state.restockList.push({
+              name: itemName,
+              category: 'Pantry',
+              checked: false,
+              autoAdded: true
+            });
+            added++;
+          }
+        }
+      });
+
+      saveState();
+      alert(added > 0 ? `Auto-generated ${added} items based on your usage velocity!` : 'All regular staples are currently well-stocked in your pantry.');
+    }
+
+    function copyRestockList() {
+      const text = state.restockList.map(i => `[${i.checked ? 'X' : ' '}] ${i.name} (${i.category})`).join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Restock list copied to clipboard!');
+      });
+    }
+
+    function renderReceiptArchive() {
+      const list = document.getElementById('receipt-archive-list');
+      const empty = document.getElementById('receipt-archive-empty');
+      if (!list) return;
+
+      if (state.receipts.length === 0) {
+        list.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      empty.classList.add('hidden');
+      list.innerHTML = state.receipts.map(rec => `
+        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-white transition shadow-sm">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                <i data-lucide="receipt" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-900">${rec.store}</h4>
+                <p class="text-xs text-slate-500">${rec.date} • ${rec.itemCount} items purchased</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-base font-black text-slate-900">$${parseFloat(rec.total).toFixed(2)}</p>
+              <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">Processed</span>
+            </div>
+          </div>
+          
+          <div class="mt-3 pt-3 border-t border-slate-200/60 flex flex-wrap gap-1.5">
+            ${(rec.items || []).map(i => `<span class="text-[11px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-600">${i.name} ($${parseFloat(i.price).toFixed(2)})</span>`).join('')}
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    let efficiencyChartInstance = null;
+    function renderVelocityAnalytics() {
+      const tbody = document.getElementById('velocity-table-body');
+      if (!tbody) return;
+
+      const keys = Object.keys(state.velocity);
+      if (keys.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">Perform weekly check-ins to build consumption velocity data.</td></tr>`;
+      } else {
+        tbody.innerHTML = keys.map(k => {
+          const v = state.velocity[k];
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="py-2.5 px-3 font-semibold text-slate-800">${k}</td>
+              <td class="py-2.5 px-3 text-slate-500">Staple</td>
+              <td class="py-2.5 px-3 font-bold text-emerald-700">${v.avgDays} days</td>
+              <td class="py-2.5 px-3">
+                <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">Every ${v.avgDays} days</span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      const ctx = document.getElementById('efficiencyDonutChart');
+      if (ctx) {
+        if (efficiencyChartInstance) efficiencyChartInstance.destroy();
+        const consumed = state.consumptionStats?.consumedCount || 15;
+        const spoiled = state.consumptionStats?.spoiledCount || 2;
+
+        efficiencyChartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Consumed Successfully', 'Spoiled / Wasted'],
+            datasets: [{
+              data: [consumed, spoiled],
+              backgroundColor: ['#10b981', '#ef4444'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+          }
+        });
+      }
+    }
+
+    function quickConsumeItem(itemId) {
+      const idx = state.inventory.findIndex(i => i.id === itemId);
+      if (idx === -1) return;
+
+      const item = state.inventory[idx];
+      updateItemVelocity(item.name, item.boughtDate);
+      state.consumptionStats.consumedCount = (state.consumptionStats.consumedCount || 0) + 1;
+      
+      if (!state.restockList.some(r => r.name.toLowerCase() === item.name.toLowerCase())) {
+        state.restockList.push({
+          name: item.name,
+          category: item.category,
+          checked: false,
+          autoAdded: true
+        });
+      }
+
+      state.inventory.splice(idx, 1);
+      saveState();
+    }
+
+    function quickDiscardItem(itemId) {
+      const idx = state.inventory.findIndex(i => i.id === itemId);
+      if (idx === -1) return;
+
+      state.consumptionStats.spoiledCount = (state.consumptionStats.spoiledCount || 0) + 1;
+      state.inventory.splice(idx, 1);
+      saveState();
+    }
+
+    function updateItemVelocity(name, boughtDateStr) {
+      const bought = new Date(boughtDateStr);
+      const now = new Date();
+      const daysTaken = Math.max(1, Math.ceil((now - bought) / (1000 * 60 * 60 * 24)));
+
+      if (!state.velocity[name]) {
+        state.velocity[name] = { avgDays: daysTaken, count: 1 };
+      } else {
+        const cur = state.velocity[name];
+        const newCount = cur.count + 1;
+        const newAvg = Math.round(((cur.avgDays * cur.count) + daysTaken) / newCount);
+        state.velocity[name] = { avgDays: newAvg, count: newCount };
+      }
+    }
+
+    function populateWeeklyCheckinModal() {
+      const list = document.getElementById('checkin-items-list');
+      const empty = document.getElementById('checkin-empty');
+      if (!list) return;
+
+      if (state.inventory.length === 0) {
+        list.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      empty.classList.add('hidden');
+      list.innerHTML = state.inventory.map(item => {
+        const days = calculateDaysRemaining(item.boughtDate, item.shelfLife);
+        return `
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input type="checkbox" class="checkin-checkbox w-4 h-4 text-blue-600 rounded border-slate-300" data-id="${item.id}" data-name="${item.name}" data-bought="${item.boughtDate}" onchange="updateCheckinCount()">
+              <div>
+                <p class="text-sm font-semibold text-slate-800">${item.name}</p>
+                <p class="text-xs text-slate-500">${item.category} • ${days <= 0 ? 'Expired' : days + 'd remaining'}</p>
+              </div>
+            </label>
+            <select class="checkin-outcome text-xs bg-white border border-slate-200 rounded-lg p-1.5 text-slate-700">
+              <option value="consumed">✅ Finished / Consumed</option>
+              <option value="spoiled">🗑️ Spoiled / Tossed</option>
+            </select>
+          </div>
+        `;
+      }).join('');
+
+      updateCheckinCount();
+    }
+
+    function updateCheckinCount() {
+      const checked = document.querySelectorAll('.checkin-checkbox:checked').length;
+      document.getElementById('checkin-selected-count').textContent = `${checked} items selected`;
+    }
+
+    function submitWeeklyCheckin() {
+      const checkboxes = document.querySelectorAll('.checkin-checkbox:checked');
+      if (checkboxes.length === 0) {
+        alert('Please select at least one item you finished or check off.');
+        return;
+      }
+
+      checkboxes.forEach(cb => {
+        const id = cb.getAttribute('data-id');
+        const name = cb.getAttribute('data-name');
+        const bought = cb.getAttribute('data-bought');
+        const outcome = cb.closest('div').querySelector('.checkin-outcome').value;
+
+        const idx = state.inventory.findIndex(i => i.id === id);
+        if (idx !== -1) {
+          const item = state.inventory[idx];
+          if (outcome === 'consumed') {
+            updateItemVelocity(name, bought);
+            state.consumptionStats.consumedCount = (state.consumptionStats.consumedCount || 0) + 1;
+            if (!state.restockList.some(r => r.name.toLowerCase() === name.toLowerCase())) {
+              state.restockList.push({
+                name: name,
+                category: item.category,
+                checked: false,
+                autoAdded: true
+              });
+            }
+          } else {
+            state.consumptionStats.spoiledCount = (state.consumptionStats.spoiledCount || 0) + 1;
+          }
+          state.inventory.splice(idx, 1);
+        }
+      });
+
+      saveState();
+      closeModal('weeklyCheckinModal');
+      alert(`Weekly check-in complete! Restock list and usage velocity updated.`);
+    }
+
+    let currentExtractedItems = [];
+
+    function handleReceiptImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const spinner = document.getElementById('receipt-scanning-spinner');
+      spinner.classList.remove('hidden');
+
+      setTimeout(() => {
+        spinner.classList.add('hidden');
+        loadSampleReceipt('Publix');
+      }, 1200);
+    }
+
+    function loadSampleReceipt(storeKey) {
+      const data = SAMPLE_RECEIPTS[storeKey];
+      if (!data) return;
+
+      document.getElementById('modal-receipt-store').value = data.store;
+      document.getElementById('modal-receipt-total').value = data.total.toFixed(2);
+      document.getElementById('modal-receipt-date').value = new Date().toISOString().split('T')[0];
+
+      currentExtractedItems = JSON.parse(JSON.stringify(data.items));
+      renderModalExtractedTable();
+    }
+
+    function renderModalExtractedTable() {
+      const tbody = document.getElementById('modal-extracted-items-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = currentExtractedItems.map((item, idx) => `
+        <tr class="border-b border-slate-100">
+          <td class="py-1.5 px-3">
+            <input type="text" value="${item.name}" onchange="currentExtractedItems[${idx}].name=this.value" class="w-full bg-transparent border-0 border-b border-slate-200 focus:border-emerald-500 text-xs font-semibold">
+          </td>
+          <td class="py-1.5 px-2">
+            <select onchange="currentExtractedItems[${idx}].category=this.value" class="bg-transparent text-xs text-slate-600">
+              <option value="Produce" ${item.category === 'Produce' ? 'selected' : ''}>Produce</option>
+              <option value="Dairy & Eggs" ${item.category === 'Dairy & Eggs' ? 'selected' : ''}>Dairy & Eggs</option>
+              <option value="Meat & Seafood" ${item.category === 'Meat & Seafood' ? 'selected' : ''}>Meat & Seafood</option>
+              <option value="Bakery" ${item.category === 'Bakery' ? 'selected' : ''}>Bakery</option>
+              <option value="Pantry" ${item.category === 'Pantry' ? 'selected' : ''}>Pantry</option>
+              <option value="Frozen" ${item.category === 'Frozen' ? 'selected' : ''}>Frozen</option>
+              <option value="Beverages" ${item.category === 'Beverages' ? 'selected' : ''}>Beverages</option>
+            </select>
+          </td>
+          <td class="py-1.5 px-2">
+            <input type="number" value="${item.qty || 1}" min="1" onchange="currentExtractedItems[${idx}].qty=parseInt(this.value)" class="w-10 text-xs bg-slate-50 border border-slate-200 rounded p-1 text-center">
+          </td>
+          <td class="py-1.5 px-2">
+            <input type="number" step="0.01" value="${item.price}" onchange="currentExtractedItems[${idx}].price=parseFloat(this.value)" class="w-16 text-xs bg-slate-50 border border-slate-200 rounded p-1 font-bold">
+          </td>
+          <td class="py-1.5 px-2">
+            <input type="number" value="${item.shelfLife || 7}" onchange="currentExtractedItems[${idx}].shelfLife=parseInt(this.value)" class="w-14 text-xs bg-slate-50 border border-slate-200 rounded p-1 text-center">
+          </td>
+          <td class="py-1.5 px-2 text-right">
+            <button onclick="removeModalLineItem(${idx})" class="text-slate-400 hover:text-red-600">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function addModalReceiptLineItem() {
+      currentExtractedItems.push({
+        name: 'New Grocery Item',
+        category: 'Produce',
+        qty: 1,
+        price: 2.99,
+        shelfLife: 7
+      });
+      renderModalExtractedTable();
+    }
+
+    function removeModalLineItem(idx) {
+      currentExtractedItems.splice(idx, 1);
+      renderModalExtractedTable();
+    }
+
+    function commitReceiptToInventory() {
+      if (currentExtractedItems.length === 0) {
+        alert('Please extract or add at least one line item.');
+        return;
+      }
+
+      const store = document.getElementById('modal-receipt-store').value || 'Publix';
+      const date = document.getElementById('modal-receipt-date').value || new Date().toISOString().split('T')[0];
+      const total = parseFloat(document.getElementById('modal-receipt-total').value) || 0;
+
+      const newItems = currentExtractedItems.map((item, idx) => ({
+        id: `item-${Date.now()}-${idx}`,
+        name: item.name,
+        category: item.category,
+        qty: item.qty || 1,
+        price: item.price,
+        store: store,
+        boughtDate: date,
+        shelfLife: item.shelfLife || DEFAULT_SHELF_LIVES[item.name] || 7
+      }));
+
+      state.inventory.push(...newItems);
+
+      state.receipts.unshift({
+        id: `rec-${Date.now()}`,
+        store: store,
+        date: date,
+        total: total || newItems.reduce((acc, i) => acc + (parseFloat(i.price)||0), 0),
+        itemCount: newItems.length,
+        items: newItems
+      });
+
+      saveState();
+      closeModal('receiptModal');
+      alert(`Successfully added ${newItems.length} items to your inventory! Freshness and savings calculated.`);
+    }
+
+    function commitManualItem() {
+      const name = document.getElementById('manual-item-name').value.trim();
+      const category = document.getElementById('manual-item-category').value;
+      const shelfLife = parseInt(document.getElementById('manual-item-shelflife').value) || 7;
+      const price = parseFloat(document.getElementById('manual-item-price').value) || 0;
+      const store = document.getElementById('manual-item-store').value;
+
+      if (!name) {
+        alert('Please enter an item name');
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      state.inventory.push({
+        id: `item-${Date.now()}`,
+        name: name,
+        category: category,
+        qty: 1,
+        price: price,
+        store: store,
+        boughtDate: today,
+        shelfLife: shelfLife
+      });
+
+      saveState();
+      closeModal('addItemModal');
+      document.getElementById('manual-item-name').value = '';
+    }
+
+    function openModal(id) {
+      const modal = document.getElementById(id);
+      if (!modal) return;
+      modal.classList.remove('hidden');
+
+      if (id === 'receiptModal' && currentExtractedItems.length === 0) {
+        loadSampleReceipt('Publix');
+      }
+      if (id === 'weeklyCheckinModal') {
+        populateWeeklyCheckinModal();
+      }
+      lucide.createIcons();
+    }
+
+    function closeModal(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.add('hidden');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      renderAll();
+      document.getElementById('modal-receipt-date').value = new Date().toISOString().split('T')[0];
+    });
+  </script>
+</body>
+</html>

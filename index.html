@@ -1065,7 +1065,7 @@
             
             <div class="form-group">
                 <label>Item Name</label>
-                <input type="text" id="manual-name" class="form-control" placeholder="e.g., Filet Mignon, Organic Milk, Honeycrisp Apples">
+                <input type="text" id="manual-name" class="form-control" placeholder="e.g., Bacon-Wrapped Filet Mignon, Milk">
             </div>
 
             <div class="form-row">
@@ -1159,7 +1159,7 @@
 
     <!-- JAVASCRIPT LOGIC & ENGINE -->
     <script>
-        const STORE_PRICE_INDEX = {
+        var STORE_PRICE_INDEX = {
             "ALDI": 0.72,
             "Walmart": 0.81,
             "Trader Joe's": 0.88,
@@ -1167,7 +1167,7 @@
             "Publix": 1.00
         };
 
-        const CATEGORY_DEFAULT_SHELF_LIFE = {
+        var CATEGORY_DEFAULT_SHELF_LIFE = {
             "Produce": 6,
             "Meat & Seafood": 4,
             "Dairy & Eggs": 10,
@@ -1177,7 +1177,7 @@
             "Beverages": 14
         };
 
-        const EMOJI_MAP = {
+        var EMOJI_MAP = {
             "Produce": "🥦",
             "Meat & Seafood": "🥩",
             "Dairy & Eggs": "🥛",
@@ -1187,7 +1187,10 @@
             "Beverages": "🧃"
         };
 
-        let appState = {
+        var checkInSelections = {};
+        var currentScannedItems = [];
+
+        var appState = {
             inventory: [],
             receipts: [],
             shoppingList: [],
@@ -1195,30 +1198,40 @@
                 consumedHistory: [],
                 learnedDaysPerItem: {}
             },
-            currentCategoryFilter: "ALL"
+            currentCategoryFilter: 'ALL'
         };
 
-        window.addEventListener("DOMContentLoaded", () => {
+        function initApp() {
             loadFromStorage();
             if (!appState.inventory || appState.inventory.length === 0) {
                 seedInitialData();
             }
-            const today = new Date().toISOString().split("T")[0];
-            const purchaseInput = document.getElementById("manual-purchase-date");
-            const receiptInput = document.getElementById("receipt-date-input");
+            var today = new Date().toISOString().split('T')[0];
+            var purchaseInput = document.getElementById('manual-purchase-date');
+            var receiptInput = document.getElementById('receipt-date-input');
             if (purchaseInput) purchaseInput.value = today;
             if (receiptInput) receiptInput.value = today;
 
             renderAll();
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
 
         function saveToStorage() {
-            localStorage.setItem("smartpantry_data", JSON.stringify(appState));
+            try {
+                localStorage.setItem('smartpantry_data', JSON.stringify(appState));
+            } catch (e) {
+                console.error("Storage save error", e);
+            }
         }
 
         function loadFromStorage() {
             try {
-                const data = localStorage.getItem("smartpantry_data");
+                var data = localStorage.getItem('smartpantry_data');
                 if (data) {
                     appState = JSON.parse(data);
                 }
@@ -1228,129 +1241,129 @@
         }
 
         function seedInitialData() {
-            const today = new Date();
-            const formatDate = (daysAgo) => {
-                const d = new Date(today);
+            var today = new Date();
+            var formatDate = function(daysAgo) {
+                var d = new Date(today);
                 d.setDate(d.getDate() - daysAgo);
-                return d.toISOString().split("T")[0];
+                return d.toISOString().split('T')[0];
             };
 
             appState.inventory = [
                 {
-                    id: "inv_1",
-                    name: "Fresh Strawberries",
-                    category: "Produce",
-                    emoji: "🍓",
-                    store: "Publix",
+                    id: 'inv_1',
+                    name: 'Fresh Strawberries',
+                    category: 'Produce',
+                    emoji: '🍓',
+                    store: 'Publix',
                     price: 4.99,
-                    qty: "1 lb pkg",
+                    qty: '1 lb pkg',
                     purchaseDate: formatDate(4),
                     shelfLifeDays: 5,
-                    status: "active",
+                    status: 'active',
                     percentRemaining: 60
                 },
                 {
-                    id: "inv_2",
-                    name: "Organic Whole Milk",
-                    category: "Dairy & Eggs",
-                    emoji: "🥛",
-                    store: "Publix",
+                    id: 'inv_2',
+                    name: 'Organic Whole Milk',
+                    category: 'Dairy & Eggs',
+                    emoji: '🥛',
+                    store: 'Publix',
                     price: 4.59,
-                    qty: "1 Gallon",
+                    qty: '1 Gallon',
                     purchaseDate: formatDate(7),
                     shelfLifeDays: 9,
-                    status: "active",
+                    status: 'active',
                     percentRemaining: 40
                 },
                 {
-                    id: "inv_3",
-                    name: "Bacon-Wrapped Filet Mignon",
-                    category: "Meat & Seafood",
-                    emoji: "🥩",
-                    store: "Winn-Dixie",
+                    id: 'inv_3',
+                    name: 'Bacon-Wrapped Filet Mignon',
+                    category: 'Meat & Seafood',
+                    emoji: '🥩',
+                    store: 'Winn-Dixie',
                     price: 18.99,
-                    qty: "2 ct",
+                    qty: '2 ct',
                     purchaseDate: formatDate(1),
                     shelfLifeDays: 4,
-                    status: "active",
+                    status: 'active',
                     percentRemaining: 100
                 },
                 {
-                    id: "inv_4",
-                    name: "Hass Avocados",
-                    category: "Produce",
-                    emoji: "🥑",
-                    store: "ALDI",
+                    id: 'inv_4',
+                    name: 'Hass Avocados',
+                    category: 'Produce',
+                    emoji: '🥑',
+                    store: 'ALDI',
                     price: 2.79,
-                    qty: "3 ct bag",
+                    qty: '3 ct bag',
                     purchaseDate: formatDate(2),
                     shelfLifeDays: 5,
-                    status: "active",
+                    status: 'active',
                     percentRemaining: 70
                 },
                 {
-                    id: "inv_5",
-                    name: "Sourdough Artisan Bread",
-                    category: "Bakery",
-                    emoji: "🍞",
+                    id: 'inv_5',
+                    name: 'Sourdough Artisan Bread',
+                    category: 'Bakery',
+                    emoji: '🍞',
                     store: "Trader Joe's",
                     price: 3.99,
-                    qty: "1 Loaf",
+                    qty: '1 Loaf',
                     purchaseDate: formatDate(4),
                     shelfLifeDays: 5,
-                    status: "active",
+                    status: 'active',
                     percentRemaining: 20
                 },
                 {
-                    id: "inv_6",
-                    name: "Baby Spinach Bag",
-                    category: "Produce",
-                    emoji: "🥬",
-                    store: "Publix",
+                    id: 'inv_6',
+                    name: 'Baby Spinach Bag',
+                    category: 'Produce',
+                    emoji: '🥬',
+                    store: 'Publix',
                     price: 3.49,
-                    qty: "10 oz",
+                    qty: '10 oz',
                     purchaseDate: formatDate(6),
                     shelfLifeDays: 6,
-                    status: "active",
+                    status: 'active',
                     percentRemaining: 15
                 }
             ];
 
             appState.receipts = [
                 {
-                    id: "rec_101",
-                    store: "Publix",
+                    id: 'rec_101',
+                    store: 'Publix',
                     date: formatDate(4),
                     total: 13.07,
                     itemCount: 3,
-                    items: ["Fresh Strawberries ($4.99)", "Organic Whole Milk ($4.59)", "Baby Spinach Bag ($3.49)"]
+                    items: ['Fresh Strawberries ($4.99)', 'Organic Whole Milk ($4.59)', 'Baby Spinach Bag ($3.49)']
                 },
                 {
-                    id: "rec_102",
-                    store: "ALDI",
+                    id: 'rec_102',
+                    store: 'ALDI',
                     date: formatDate(2),
                     total: 6.78,
                     itemCount: 2,
-                    items: ["Hass Avocados ($2.79)", "Eggs Large Grade A ($3.99)"]
+                    items: ['Hass Avocados ($2.79)', 'Eggs Large Grade A ($3.99)']
                 }
             ];
 
             appState.shoppingList = [
-                { id: "shop_1", name: "Eggs Large Grade A", category: "Dairy & Eggs", store: "ALDI", estPrice: 2.89, bought: false },
-                { id: "shop_2", name: "Olive Oil Extra Virgin", category: "Pantry", store: "Trader Joe's", estPrice: 6.99, bought: false }
+                { id: 'shop_1', name: 'Eggs Large Grade A', category: 'Dairy & Eggs', store: 'ALDI', estPrice: 2.89, bought: false },
+                { id: 'shop_2', name: 'Olive Oil Extra Virgin', category: 'Pantry', store: "Trader Joe's", estPrice: 6.99, bought: false }
             ];
 
             appState.velocityStats = {
                 consumedHistory: [
-                    { name: "Organic Whole Milk", daysTaken: 6, date: formatDate(8), wasWasted: false },
-                    { name: "Sourdough Artisan Bread", daysTaken: 4, date: formatDate(9), wasWasted: false },
-                    { name: "Baby Spinach", daysTaken: 5, date: formatDate(12), wasWasted: true }
+                    { name: 'Organic Whole Milk', daysTaken: 6, date: formatDate(8), wasWasted: false },
+                    { name: 'Sourdough Artisan Bread', daysTaken: 4, date: formatDate(9), wasWasted: false },
+                    { name: 'Baby Spinach Bag', daysTaken: 5, date: formatDate(12), wasWasted: true }
                 ],
                 learnedDaysPerItem: {
-                    "Organic Whole Milk": 6,
-                    "Sourdough Artisan Bread": 4,
-                    "Hass Avocados": 3,
-                    "Fresh Strawberries": 4
+                    'Organic Whole Milk': 6,
+                    'Sourdough Artisan Bread': 4,
+                    'Hass Avocados': 3,
+                    'Fresh Strawberries': 4
                 }
             };
 
@@ -1359,50 +1372,52 @@
 
         function resetSampleData() {
             if (confirm("Reset SmartPantry with default sample data?")) {
-                localStorage.removeItem("smartpantry_data");
+                try {
+                    localStorage.removeItem('smartpantry_data');
+                } catch(e) {}
                 seedInitialData();
                 renderAll();
             }
         }
 
         function switchTab(tabId, el) {
-            document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-            document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+            document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+            document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
 
-            const targetPane = document.getElementById("tab-" + tabId);
-            if (targetPane) targetPane.classList.add("active");
-            if (el) el.classList.add("active");
+            var targetPane = document.getElementById('tab-' + tabId);
+            if (targetPane) targetPane.classList.add('active');
+            if (el) el.classList.add('active');
 
-            if (tabId === "inventory") renderInventory();
-            if (tabId === "savings") renderSavings();
-            if (tabId === "velocity") renderVelocity();
-            if (tabId === "restock") renderRestock();
-            if (tabId === "scanner") renderReceiptHistory();
+            if (tabId === 'inventory') renderInventory();
+            if (tabId === 'savings') renderSavings();
+            if (tabId === 'velocity') renderVelocity();
+            if (tabId === 'restock') renderRestock();
+            if (tabId === 'scanner') renderReceiptHistory();
         }
 
         function getFreshnessDetails(item) {
-            const purchase = new Date(item.purchaseDate);
-            const today = new Date();
-            const diffTime = today - purchase;
-            const daysElapsed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            const daysRemaining = item.shelfLifeDays - daysElapsed;
-            const progressPercent = Math.max(0, Math.min(100, Math.round((daysRemaining / item.shelfLifeDays) * 100)));
+            var purchase = new Date(item.purchaseDate);
+            var today = new Date();
+            var diffTime = today - purchase;
+            var daysElapsed = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+            var daysRemaining = item.shelfLifeDays - daysElapsed;
+            var progressPercent = Math.max(0, Math.min(100, Math.round((daysRemaining / item.shelfLifeDays) * 100)));
 
-            let status = "fresh";
-            let badgeClass = "badge-fresh";
-            let fillClass = "fill-fresh";
-            let label = daysRemaining + "d left";
+            var status = 'fresh';
+            var badgeClass = 'badge-fresh';
+            var fillClass = 'fill-fresh';
+            var label = daysRemaining + 'd left';
 
             if (daysRemaining <= 0) {
-                status = "expired";
-                badgeClass = "badge-expired";
-                fillClass = "fill-expired";
-                label = daysRemaining === 0 ? "Expires Today!" : "Expired " + Math.abs(daysRemaining) + "d ago";
+                status = 'expired';
+                badgeClass = 'badge-expired';
+                fillClass = 'fill-expired';
+                label = daysRemaining === 0 ? 'Expires Today!' : 'Expired ' + Math.abs(daysRemaining) + 'd ago';
             } else if (daysRemaining <= 3) {
-                status = "soon";
-                badgeClass = "badge-soon";
-                fillClass = "fill-soon";
-                label = "Use soon (" + daysRemaining + "d left)";
+                status = 'soon';
+                badgeClass = 'badge-soon';
+                fillClass = 'fill-soon';
+                label = 'Use soon (' + daysRemaining + 'd left)';
             }
 
             return {
@@ -1417,113 +1432,112 @@
         }
 
         function renderInventory() {
-            const listEl = document.getElementById("food-card-list");
-            const searchVal = (document.getElementById("inventory-search").value || "").toLowerCase();
-            const countEl = document.getElementById("inventory-item-count");
+            var listEl = document.getElementById('food-card-list');
+            if (!listEl) return;
+            var searchInput = document.getElementById('inventory-search');
+            var searchVal = (searchInput && searchInput.value ? searchInput.value : '').toLowerCase();
+            var countEl = document.getElementById('inventory-item-count');
 
-            let soonCount = 0;
-            let expiredCount = 0;
-            let totalCount = 0;
+            var soonCount = 0;
+            var expiredCount = 0;
+            var totalCount = 0;
 
-            const activeItems = appState.inventory.filter(item => item.status === "active");
+            var activeItems = appState.inventory.filter(function(item) { return item.status === 'active'; });
             totalCount = activeItems.length;
 
-            const filtered = activeItems.filter(item => {
-                const matchesCat = appState.currentCategoryFilter === "ALL" || item.category === appState.currentCategoryFilter;
-                const matchesSearch = item.name.toLowerCase().includes(searchVal) || item.store.toLowerCase().includes(searchVal);
+            var filtered = activeItems.filter(function(item) {
+                var matchesCat = appState.currentCategoryFilter === 'ALL' || item.category === appState.currentCategoryFilter;
+                var matchesSearch = item.name.toLowerCase().indexOf(searchVal) !== -1 || item.store.toLowerCase().indexOf(searchVal) !== -1;
                 return matchesCat && matchesSearch;
             });
 
-            activeItems.forEach(item => {
-                const fresh = getFreshnessDetails(item);
-                if (fresh.status === "soon") soonCount++;
-                if (fresh.status === "expired") expiredCount++;
+            activeItems.forEach(function(item) {
+                var fresh = getFreshnessDetails(item);
+                if (fresh.status === 'soon') soonCount++;
+                if (fresh.status === 'expired') expiredCount++;
             });
 
-            document.getElementById("stat-soon-count").innerText = soonCount;
-            document.getElementById("stat-expired-count").innerText = expiredCount;
-            document.getElementById("stat-total-count").innerText = totalCount;
+            var soonEl = document.getElementById('stat-soon-count');
+            var expEl = document.getElementById('stat-expired-count');
+            var totEl = document.getElementById('stat-total-count');
+            if (soonEl) soonEl.innerText = soonCount;
+            if (expEl) expEl.innerText = expiredCount;
+            if (totEl) totEl.innerText = totalCount;
             
-            const badgeAlert = document.getElementById("badge-spoil-alert");
-            if (soonCount + expiredCount > 0) {
-                badgeAlert.style.display = "inline-block";
-                badgeAlert.innerText = soonCount + expiredCount;
-            } else {
-                badgeAlert.style.display = "none";
+            var badgeAlert = document.getElementById('badge-spoil-alert');
+            if (badgeAlert) {
+                if (soonCount + expiredCount > 0) {
+                    badgeAlert.style.display = 'inline-block';
+                    badgeAlert.innerText = soonCount + expiredCount;
+                } else {
+                    badgeAlert.style.display = 'none';
+                }
             }
 
-            countEl.innerText = filtered.length + " of " + totalCount + " items";
+            if (countEl) {
+                countEl.innerText = filtered.length + ' of ' + totalCount + ' items';
+            }
 
             if (filtered.length === 0) {
                 listEl.innerHTML = '<div class="stat-card text-center" style="padding: 24px 16px;"><span style="font-size: 32px;">🥬</span><h4 style="margin-top: 8px; font-size: 14px;">No active grocery items found</h4><p style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">Scan a receipt or tap ➕ to add groceries to your pantry.</p></div>';
                 return;
             }
 
-            filtered.sort((a, b) => {
-                const fA = getFreshnessDetails(a);
-                const fB = getFreshnessDetails(b);
+            filtered.sort(function(a, b) {
+                var fA = getFreshnessDetails(a);
+                var fB = getFreshnessDetails(b);
                 return fA.daysRemaining - fB.daysRemaining;
             });
 
-            listEl.innerHTML = filtered.map(item => {
-                const fresh = getFreshnessDetails(item);
-                const emoji = item.emoji || EMOJI_MAP[item.category] || "🥑";
+            listEl.innerHTML = filtered.map(function(item) {
+                var fresh = getFreshnessDetails(item);
+                var emoji = item.emoji || EMOJI_MAP[item.category] || '🥑';
 
-                return `
-                    <div class="food-card status-${fresh.status}">
-                        <div class="card-main">
-                            <div class="food-info">
-                                <div class="food-emoji">${emoji}</div>
-                                <div class="food-details">
-                                    <h3>${item.name}</h3>
-                                    <div class="food-meta">
-                                        <span class="badge-store">${item.store}</span>
-                                        <span>• ${item.qty || "1 unit"}</span>
-                                        <span>• ${item.purchaseDate}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-price">
-                                <div class="price-val">$${Number(item.price).toFixed(2)}</div>
-                                <div class="price-qty">${item.percentRemaining}% left</div>
-                            </div>
-                        </div>
-
-                        <div class="gauge-section">
-                            <div class="gauge-header">
-                                <span class="gauge-status-badge ${fresh.badgeClass}">${fresh.label}</span>
-                                <span style="color: var(--text-muted); font-size: 10px;">Shelf Life: ${item.shelfLifeDays}d</span>
-                            </div>
-                            <div class="gauge-bar-bg">
-                                <div class="gauge-bar-fill ${fresh.fillClass}" style="width: ${fresh.progressPercent}%"></div>
-                            </div>
-                        </div>
-
-                        <div class="card-actions">
-                            <button class="btn-action-sm btn-consume-fast" onclick="rapidConsumeItem('${item.id}', 50)">
-                                🍽️ Used 50%
-                            </button>
-                            <button class="btn-action-sm btn-consume-fast" onclick="rapidDepleteItem('${item.id}')">
-                                ✅ Finished All
-                            </button>
-                            <button class="btn-action-sm" onclick="rapidWasteItem('${item.id}')" style="color: var(--accent-red);">
-                                🗑️ Tossed
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join("");
+                return '<div class="food-card status-' + fresh.status + '">' +
+                    '<div class="card-main">' +
+                        '<div class="food-info">' +
+                            '<div class="food-emoji">' + emoji + '</div>' +
+                            '<div class="food-details">' +
+                                '<h3>' + item.name + '</h3>' +
+                                '<div class="food-meta">' +
+                                    '<span class="badge-store">' + item.store + '</span>' +
+                                    '<span>• ' + (item.qty || '1 unit') + '</span>' +
+                                    '<span>• ' + item.purchaseDate + '</span>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="card-price">' +
+                            '<div class="price-val">$' + Number(item.price).toFixed(2) + '</div>' +
+                            '<div class="price-qty">' + item.percentRemaining + '% left</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="gauge-section">' +
+                        '<div class="gauge-header">' +
+                            '<span class="gauge-status-badge ' + fresh.badgeClass + '">' + fresh.label + '</span>' +
+                            '<span style="color: var(--text-muted); font-size: 10px;">Shelf Life: ' + item.shelfLifeDays + 'd</span>' +
+                        '</div>' +
+                        '<div class="gauge-bar-bg">' +
+                            '<div class="gauge-bar-fill ' + fresh.fillClass + '" style="width: ' + fresh.progressPercent + '%"></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="card-actions">' +
+                        '<button class="btn-action-sm btn-consume-fast" onclick="rapidConsumeItem(\'' + item.id + '\', 50)">🍽️ Used 50%</button>' +
+                        '<button class="btn-action-sm btn-consume-fast" onclick="rapidDepleteItem(\'' + item.id + '\')">✅ Finished All</button>' +
+                        '<button class="btn-action-sm" onclick="rapidWasteItem(\'' + item.id + '\')" style="color: var(--accent-red);">🗑️ Tossed</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
         function setCategoryFilter(cat, el) {
             appState.currentCategoryFilter = cat;
-            document.querySelectorAll("#category-filters .filter-pill").forEach(p => p.classList.remove("active"));
-            if (el) el.classList.add("active");
+            document.querySelectorAll('#category-filters .filter-pill').forEach(function(p) { p.classList.remove('active'); });
+            if (el) el.classList.add('active');
             renderInventory();
         }
 
         function rapidConsumeItem(id, pct) {
-            const item = appState.inventory.find(i => i.id === id);
+            var item = appState.inventory.find(function(i) { return i.id === id; });
             if (item) {
                 item.percentRemaining = Math.max(0, item.percentRemaining - pct);
                 if (item.percentRemaining === 0) {
@@ -1536,12 +1550,12 @@
         }
 
         function rapidDepleteItem(id) {
-            const item = appState.inventory.find(i => i.id === id);
+            var item = appState.inventory.find(function(i) { return i.id === id; });
             if (item) {
-                item.status = "consumed";
+                item.status = 'consumed';
                 item.percentRemaining = 0;
                 
-                const fresh = getFreshnessDetails(item);
+                var fresh = getFreshnessDetails(item);
                 recordConsumptionVelocity(item.name, Math.max(1, fresh.daysElapsed), false);
                 autoAddToShoppingList(item);
 
@@ -1551,11 +1565,11 @@
         }
 
         function rapidWasteItem(id) {
-            const item = appState.inventory.find(i => i.id === id);
+            var item = appState.inventory.find(function(i) { return i.id === id; });
             if (item) {
-                item.status = "wasted";
+                item.status = 'wasted';
                 item.percentRemaining = 0;
-                const fresh = getFreshnessDetails(item);
+                var fresh = getFreshnessDetails(item);
                 recordConsumptionVelocity(item.name, Math.max(1, fresh.daysElapsed), true);
                 saveToStorage();
                 renderAll();
@@ -1569,43 +1583,47 @@
             appState.velocityStats.consumedHistory.push({
                 name: name,
                 daysTaken: daysTaken,
-                date: new Date().toISOString().split("T")[0],
+                date: new Date().toISOString().split('T')[0],
                 wasWasted: wasWasted
             });
-            const history = appState.velocityStats.consumedHistory.filter(h => h.name.toLowerCase() === name.toLowerCase() && !h.wasWasted);
+            var history = appState.velocityStats.consumedHistory.filter(function(h) {
+                return h.name.toLowerCase() === name.toLowerCase() && !h.wasWasted;
+            });
             if (history.length > 0) {
-                const total = history.reduce((sum, h) => sum + h.daysTaken, 0);
+                var total = history.reduce(function(sum, h) { return sum + h.daysTaken; }, 0);
                 appState.velocityStats.learnedDaysPerItem[name] = Math.round((total / history.length) * 10) / 10;
             }
         }
 
         function autoAddToShoppingList(item) {
-            const exists = appState.shoppingList.some(s => s.name.toLowerCase() === item.name.toLowerCase() && !s.bought);
+            var exists = appState.shoppingList.some(function(s) {
+                return s.name.toLowerCase() === item.name.toLowerCase() && !s.bought;
+            });
             if (!exists) {
                 appState.shoppingList.push({
-                    id: "shop_" + Date.now(),
+                    id: 'shop_' + Date.now(),
                     name: item.name,
                     category: item.category,
-                    store: "ALDI",
-                    estPrice: Math.round(item.price * STORE_PRICE_INDEX["ALDI"] * 100) / 100,
+                    store: 'ALDI',
+                    estPrice: Math.round(item.price * STORE_PRICE_INDEX['ALDI'] * 100) / 100,
                     bought: false
                 });
             }
         }
 
         function renderSavings() {
-            const activeItems = appState.inventory.filter(i => i.status === "active");
+            var activeItems = appState.inventory.filter(function(i) { return i.status === 'active'; });
             
-            let baselineCost = 0;
-            activeItems.forEach(item => {
-                const multiplier = STORE_PRICE_INDEX[item.store] || 1.0;
-                const normalizedItemCost = item.price / multiplier;
+            var baselineCost = 0;
+            activeItems.forEach(function(item) {
+                var multiplier = STORE_PRICE_INDEX[item.store] || 1.0;
+                var normalizedItemCost = item.price / multiplier;
                 baselineCost += normalizedItemCost;
             });
 
             if (baselineCost === 0) baselineCost = 45.00;
 
-            const storeTotals = {
+            var storeTotals = {
                 "ALDI": baselineCost * STORE_PRICE_INDEX["ALDI"],
                 "Walmart": baselineCost * STORE_PRICE_INDEX["Walmart"],
                 "Trader Joe's": baselineCost * STORE_PRICE_INDEX["Trader Joe's"],
@@ -1613,31 +1631,35 @@
                 "Publix": baselineCost * STORE_PRICE_INDEX["Publix"]
             };
 
-            const aldiTotal = storeTotals["ALDI"];
-            const maxTotal = storeTotals["Publix"];
-            const potentialSavings = maxTotal - aldiTotal;
-            const savingsPct = Math.round((potentialSavings / maxTotal) * 100);
+            var aldiTotal = storeTotals["ALDI"];
+            var maxTotal = storeTotals["Publix"];
+            var potentialSavings = maxTotal - aldiTotal;
+            var savingsPct = Math.round((potentialSavings / maxTotal) * 100);
 
-            document.getElementById("savings-hero-amount").innerText = "$" + potentialSavings.toFixed(2);
-            document.getElementById("savings-hero-pct").innerText = savingsPct + "% Max Savings";
-            document.getElementById("savings-hero-desc").innerText = 
-                "Based on your active basket of " + activeItems.length + " items. Shopping at ALDI saves ~$" + potentialSavings.toFixed(2) + " compared to standard Publix pricing.";
+            var amtEl = document.getElementById('savings-hero-amount');
+            var pctEl = document.getElementById('savings-hero-pct');
+            var descEl = document.getElementById('savings-hero-desc');
+            if (amtEl) amtEl.innerText = '$' + potentialSavings.toFixed(2);
+            if (pctEl) pctEl.innerText = savingsPct + '% Max Savings';
+            if (descEl) descEl.innerText = 'Based on your active basket of ' + activeItems.length + ' items. Shopping at ALDI saves ~$' + potentialSavings.toFixed(2) + ' compared to standard Publix pricing.';
 
-            const container = document.getElementById("store-comparison-container");
-            const storeList = [
-                { name: "ALDI (Deep Discount)", key: "ALDI", badge: "badge-aldi", desc: "Cheapest Basket in Pinellas County" },
-                { name: "Walmart Supercenter", key: "Walmart", badge: "badge-walmart", desc: "Everyday Low Prices" },
-                { name: "Trader Joe's", key: "Trader Joe's", badge: "badge-tjs", desc: "Specialty & Value Basics" },
-                { name: "Winn-Dixie", key: "Winn-Dixie", badge: "badge-winn", desc: "Rewards & BOGO Specials" },
-                { name: "Publix (Madeira Beach)", key: "Publix", badge: "badge-publix", desc: "Local Standard Benchmark" }
+            var container = document.getElementById('store-comparison-container');
+            if (!container) return;
+
+            var storeList = [
+                { name: 'ALDI (Deep Discount)', key: 'ALDI', badge: 'badge-aldi', desc: 'Cheapest Basket in Pinellas County' },
+                { name: 'Walmart Supercenter', key: 'Walmart', badge: 'badge-walmart', desc: 'Everyday Low Prices' },
+                { name: "Trader Joe's", key: "Trader Joe's", badge: 'badge-tjs', desc: 'Specialty & Value Basics' },
+                { name: 'Winn-Dixie', key: 'Winn-Dixie', badge: 'badge-winn', desc: 'Rewards & BOGO Specials' },
+                { name: 'Publix (Madeira Beach)', key: 'Publix', badge: 'badge-publix', desc: 'Local Standard Benchmark' }
             ];
 
-            container.innerHTML = storeList.map(store => {
-                const cost = storeTotals[store.key];
-                const diffVsPublix = cost - storeTotals["Publix"];
-                const isCheapest = store.key === "ALDI";
+            container.innerHTML = storeList.map(function(store) {
+                var cost = storeTotals[store.key];
+                var diffVsPublix = cost - storeTotals["Publix"];
+                var isCheapest = store.key === 'ALDI';
 
-                let diffHtml = "";
+                var diffHtml = '';
                 if (diffVsPublix < -0.01) {
                     diffHtml = '<span class="store-diff stat-green">-$' + Math.abs(diffVsPublix).toFixed(2) + ' (' + Math.round((Math.abs(diffVsPublix)/storeTotals["Publix"])*100) + '% cheaper)</span>';
                 } else if (diffVsPublix > 0.01) {
@@ -1646,85 +1668,79 @@
                     diffHtml = '<span class="store-diff stat-blue">Baseline Benchmark</span>';
                 }
 
-                return `
-                    <div class="store-card ${isCheapest ? "best-deal" : ""}">
-                        <div class="store-info">
-                            <div class="store-logo-badge ${store.badge}">${store.key.slice(0, 2).toUpperCase()}</div>
-                            <div class="store-names">
-                                <h4>${store.name}</h4>
-                                <p>${store.desc}</p>
-                            </div>
-                        </div>
-                        <div class="store-cost">
-                            <div class="store-total">$${cost.toFixed(2)}</div>
-                            ${diffHtml}
-                        </div>
-                    </div>
-                `;
-            }).join("");
+                return '<div class="store-card ' + (isCheapest ? 'best-deal' : '') + '">' +
+                    '<div class="store-info">' +
+                        '<div class="store-logo-badge ' + store.badge + '">' + store.key.slice(0, 2).toUpperCase() + '</div>' +
+                        '<div class="store-names">' +
+                            '<h4>' + store.name + '</h4>' +
+                            '<p>' + store.desc + '</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="store-cost">' +
+                        '<div class="store-total">$' + cost.toFixed(2) + '</div>' +
+                        diffHtml +
+                    '</div>' +
+                '</div>';
+            }).join('');
 
-            const insightsContainer = document.getElementById("savings-insights-list");
-            insightsContainer.innerHTML = `
-                <div class="stat-card">
-                    <div style="font-size: 12px; font-weight: 700; color: var(--accent-green);">🥩 Meat & Produce Optimization</div>
-                    <p style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">
-                        Buying produce (berries, avocados, greens) at ALDI or Trader Joe's yields an average 30% savings over traditional supermarkets.
-                    </p>
-                </div>
-                <div class="stat-card">
-                    <div style="font-size: 12px; font-weight: 700; color: var(--accent-blue);">🥫 Pantry Staples Strategy</div>
-                    <p style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">
-                        Keep high shelf-life staples (oils, seasonings, canned goods) stocked via Walmart/ALDI to minimize frequent high-ticket trips.
-                    </p>
-                </div>
-            `;
+            var insightsContainer = document.getElementById('savings-insights-list');
+            if (insightsContainer) {
+                insightsContainer.innerHTML = '<div class="stat-card">' +
+                    '<div style="font-size: 12px; font-weight: 700; color: var(--accent-green);">🥩 Meat & Produce Optimization</div>' +
+                    '<p style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">Buying produce (berries, avocados, greens) at ALDI or Trader Joe\'s yields an average 30% savings over traditional supermarkets.</p>' +
+                '</div>' +
+                '<div class="stat-card">' +
+                    '<div style="font-size: 12px; font-weight: 700; color: var(--accent-blue);">🥫 Pantry Staples Strategy</div>' +
+                    '<p style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">Keep high shelf-life staples (oils, seasonings, canned goods) stocked via Walmart/ALDI to minimize frequent high-ticket trips.</p>' +
+                '</div>';
+            }
         }
 
-        let checkInSelections = {};
-
         function renderVelocity() {
-            const listEl = document.getElementById("checkin-items-list");
-            const activeItems = appState.inventory.filter(i => i.status === "active");
+            var listEl = document.getElementById('checkin-items-list');
+            if (!listEl) return;
+            var activeItems = appState.inventory.filter(function(i) { return i.status === 'active'; });
             
-            const history = appState.velocityStats?.consumedHistory || [];
-            const wasted = history.filter(h => h.wasWasted).length;
-            const consumed = history.filter(h => !h.wasWasted).length;
-            const totalFinished = wasted + consumed;
-            const efficiency = totalFinished > 0 ? Math.round((consumed / totalFinished) * 100) : 95;
+            var history = (appState.velocityStats && appState.velocityStats.consumedHistory) ? appState.velocityStats.consumedHistory : [];
+            var wasted = history.filter(function(h) { return h.wasWasted; }).length;
+            var consumed = history.filter(function(h) { return !h.wasWasted; }).length;
+            var totalFinished = wasted + consumed;
+            var efficiency = totalFinished > 0 ? Math.round((consumed / totalFinished) * 100) : 95;
 
-            const avgLife = history.length > 0 ? 
-                (history.reduce((acc, h) => acc + h.daysTaken, 0) / history.length).toFixed(1) : "5.0";
+            var avgLife = history.length > 0 ? 
+                (history.reduce(function(acc, h) { return acc + h.daysTaken; }, 0) / history.length).toFixed(1) : '5.0';
 
-            document.getElementById("velocity-efficiency").innerText = efficiency + "%";
-            document.getElementById("velocity-avg-life").innerText = avgLife + "d";
-            document.getElementById("velocity-finished-count").innerText = Object.keys(checkInSelections).length;
+            var effEl = document.getElementById('velocity-efficiency');
+            var lifeEl = document.getElementById('velocity-avg-life');
+            var finEl = document.getElementById('velocity-finished-count');
+            if (effEl) effEl.innerText = efficiency + '%';
+            if (lifeEl) lifeEl.innerText = avgLife + 'd';
+            if (finEl) finEl.innerText = Object.keys(checkInSelections).length;
 
             if (activeItems.length === 0) {
                 listEl.innerHTML = '<div class="stat-card text-center"><p style="font-size:12px;">No items currently in pantry.</p></div>';
                 return;
             }
 
-            listEl.innerHTML = activeItems.map(item => {
-                const isSelected = !!checkInSelections[item.id];
-                const fresh = getFreshnessDetails(item);
-                const emoji = item.emoji || EMOJI_MAP[item.category] || "🥑";
+            listEl.innerHTML = activeItems.map(function(item) {
+                var isSelected = !!checkInSelections[item.id];
+                var fresh = getFreshnessDetails(item);
+                var emoji = item.emoji || EMOJI_MAP[item.category] || '🥑';
 
-                return `
-                    <div class="checkin-item ${isSelected ? "checked" : ""}" onclick="toggleCheckInSelection('${item.id}')">
-                        <div class="checkin-left">
-                            <div class="checkin-checkbox">${isSelected ? "✓" : ""}</div>
-                            <span style="font-size: 20px;">${emoji}</span>
-                            <div>
-                                <h4 style="font-size: 13px; font-weight: 700;">${item.name}</h4>
-                                <p style="font-size: 10px; color: var(--text-muted);">${item.category} • In stock ${fresh.daysElapsed}d</p>
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <span class="gauge-status-badge ${fresh.badgeClass}">${fresh.label}</span>
-                        </div>
-                    </div>
-                `;
-            }).join("");
+                return '<div class="checkin-item ' + (isSelected ? 'checked' : '') + '" onclick="toggleCheckInSelection(\'' + item.id + '\')">' +
+                    '<div class="checkin-left">' +
+                        '<div class="checkin-checkbox">' + (isSelected ? '✓' : '') + '</div>' +
+                        '<span style="font-size: 20px;">' + emoji + '</span>' +
+                        '<div>' +
+                            '<h4 style="font-size: 13px; font-weight: 700;">' + item.name + '</h4>' +
+                            '<p style="font-size: 10px; color: var(--text-muted);">' + item.category + ' • In stock ' + fresh.daysElapsed + 'd</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="text-align: right;">' +
+                        '<span class="gauge-status-badge ' + fresh.badgeClass + '">' + fresh.label + '</span>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
         function toggleCheckInSelection(id) {
@@ -1737,32 +1753,35 @@
         }
 
         function completeWeeklyCheckIn() {
-            const ids = Object.keys(checkInSelections);
+            var ids = Object.keys(checkInSelections);
             if (ids.length === 0) {
                 alert("Select at least one item you finished this week!");
                 return;
             }
 
-            ids.forEach(id => {
+            ids.forEach(function(id) {
                 rapidDepleteItem(id);
             });
 
             checkInSelections = {};
-            alert("Great job! Learned consumption velocity for " + ids.length + " items and updated your Smart Restock list.");
+            alert('Great job! Learned consumption velocity for ' + ids.length + ' items and updated your Smart Restock list.');
             renderAll();
-            switchTab("restock");
+            switchTab('restock');
         }
 
         function renderRestock() {
-            const container = document.getElementById("shopping-list-container");
-            const badge = document.getElementById("badge-restock-count");
-            const unbought = appState.shoppingList.filter(s => !s.bought);
+            var container = document.getElementById('shopping-list-container');
+            if (!container) return;
+            var badge = document.getElementById('badge-restock-count');
+            var unbought = appState.shoppingList.filter(function(s) { return !s.bought; });
 
-            if (unbought.length > 0) {
-                badge.style.display = "inline-block";
-                badge.innerText = unbought.length;
-            } else {
-                badge.style.display = "none";
+            if (badge) {
+                if (unbought.length > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.innerText = unbought.length;
+                } else {
+                    badge.style.display = 'none';
+                }
             }
 
             if (appState.shoppingList.length === 0) {
@@ -1770,36 +1789,36 @@
                 return;
             }
 
-            const estTotal = appState.shoppingList.reduce((sum, i) => sum + (i.estPrice || 3.50), 0);
-            const publixEst = estTotal / STORE_PRICE_INDEX["ALDI"];
-            const saved = publixEst - estTotal;
+            var estTotal = appState.shoppingList.reduce(function(sum, i) { return sum + (i.estPrice || 3.50); }, 0);
+            var publixEst = estTotal / STORE_PRICE_INDEX['ALDI'];
+            var saved = publixEst - estTotal;
 
-            document.getElementById("restock-rec-diff").innerText = 
-                "Estimated Basket: $" + estTotal.toFixed(2) + " (Save ~$" + saved.toFixed(2) + " at ALDI vs Publix)";
+            var recDiff = document.getElementById('restock-rec-diff');
+            if (recDiff) {
+                recDiff.innerText = 'Estimated Basket: $' + estTotal.toFixed(2) + ' (Save ~$' + saved.toFixed(2) + ' at ALDI vs Publix)';
+            }
 
-            container.innerHTML = appState.shoppingList.map(item => {
-                const emoji = EMOJI_MAP[item.category] || "🛒";
-                return `
-                    <div class="shopping-item ${item.bought ? "bought" : ""}">
-                        <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
-                            <input type="checkbox" ${item.bought ? "checked" : ""} onchange="toggleShoppingItem('${item.id}')" style="width: 18px; height: 18px; accent-color: var(--accent-green); cursor:pointer;">
-                            <span style="font-size: 20px;">${emoji}</span>
-                            <div>
-                                <h4 style="font-size: 13px; font-weight: 700;">${item.name}</h4>
-                                <span style="font-size: 10px; color: var(--text-secondary);">${item.category} • Target: ${item.store || "ALDI"}</span>
-                            </div>
-                        </div>
-                        <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 13px; font-weight: 700;">$${Number(item.estPrice || 3.50).toFixed(2)}</span>
-                            <button class="btn-icon-subtle" style="width:26px; height:26px; font-size: 11px;" onclick="removeShoppingItem('${item.id}')">✕</button>
-                        </div>
-                    </div>
-                `;
-            }).join("");
+            container.innerHTML = appState.shoppingList.map(function(item) {
+                var emoji = EMOJI_MAP[item.category] || '🛒';
+                return '<div class="shopping-item ' + (item.bought ? 'bought' : '') + '">' +
+                    '<div style="display: flex; align-items: center; gap: 10px; flex: 1;">' +
+                        '<input type="checkbox" ' + (item.bought ? 'checked' : '') + ' onchange="toggleShoppingItem(\'' + item.id + '\')" style="width: 18px; height: 18px; accent-color: var(--accent-green); cursor:pointer;">' +
+                        '<span style="font-size: 20px;">' + emoji + '</span>' +
+                        '<div>' +
+                            '<h4 style="font-size: 13px; font-weight: 700;">' + item.name + '</h4>' +
+                            '<span style="font-size: 10px; color: var(--text-secondary);">' + item.category + ' • Target: ' + (item.store || 'ALDI') + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="text-align: right; display: flex; align-items: center; gap: 8px;">' +
+                        '<span style="font-size: 13px; font-weight: 700;">$' + Number(item.estPrice || 3.50).toFixed(2) + '</span>' +
+                        '<button class="btn-icon-subtle" style="width:26px; height:26px; font-size: 11px;" onclick="removeShoppingItem(\'' + item.id + '\')">✕</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
         function toggleShoppingItem(id) {
-            const item = appState.shoppingList.find(s => s.id === id);
+            var item = appState.shoppingList.find(function(s) { return s.id === id; });
             if (item) {
                 item.bought = !item.bought;
                 saveToStorage();
@@ -1808,70 +1827,78 @@
         }
 
         function removeShoppingItem(id) {
-            appState.shoppingList = appState.shoppingList.filter(s => s.id !== id);
+            appState.shoppingList = appState.shoppingList.filter(function(s) { return s.id !== id; });
             saveToStorage();
             renderRestock();
         }
 
         function copyShoppingList() {
-            const items = appState.shoppingList.filter(s => !s.bought).map(s => "- " + s.name + " (" + s.category + ") [Target: " + s.store + "] ~$" + s.estPrice);
+            var items = appState.shoppingList.filter(function(s) { return !s.bought; }).map(function(s) {
+                return '- ' + s.name + ' (' + s.category + ') [Target: ' + s.store + '] ~$' + s.estPrice;
+            });
             if (items.length === 0) {
                 alert("Shopping list is empty!");
                 return;
             }
-            const text = "🛒 SmartPantry Restock List (Madeira Beach):\n" + items.join("\n");
-            navigator.clipboard.writeText(text).then(() => {
-                alert("Shopping list copied to clipboard!");
-            }).catch(() => {
+            var text = '🛒 SmartPantry Restock List (Madeira Beach):\n' + items.join('\n');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    alert("Shopping list copied to clipboard!");
+                }).catch(function() {
+                    alert(text);
+                });
+            } else {
                 alert(text);
-            });
+            }
         }
 
-        let currentScannedItems = [];
-
         function handleReceiptFile(event) {
-            const file = event.target.files[0];
+            var file = event.target.files[0];
             if (!file) return;
 
-            const sampleReceiptItems = [
-                { name: "Honeycrisp Apples 3lb", category: "Produce", price: 5.49, qty: "3 lb bag", emoji: "🍎", shelfLifeDays: 8 },
-                { name: "Fresh Boneless Chicken Breast", category: "Meat & Seafood", price: 9.87, qty: "2.1 lb", emoji: "🍗", shelfLifeDays: 3 },
-                { name: "Grade A Large White Eggs", category: "Dairy & Eggs", price: 3.29, qty: "12 ct", emoji: "🥚", shelfLifeDays: 14 },
-                { name: "Artisan Ciabatta Rolls", category: "Bakery", price: 3.99, qty: "4 ct", emoji: "🥖", shelfLifeDays: 4 },
-                { name: "Chobani Greek Yogurt", category: "Dairy & Eggs", price: 4.50, qty: "32 oz", emoji: "🥛", shelfLifeDays: 12 }
+            var sampleReceiptItems = [
+                { name: 'Honeycrisp Apples 3lb', category: 'Produce', price: 5.49, qty: '3 lb bag', emoji: '🍎', shelfLifeDays: 8 },
+                { name: 'Fresh Boneless Chicken Breast', category: 'Meat & Seafood', price: 9.87, qty: '2.1 lb', emoji: '🍗', shelfLifeDays: 3 },
+                { name: 'Grade A Large White Eggs', category: 'Dairy & Eggs', price: 3.29, qty: '12 ct', emoji: '🥚', shelfLifeDays: 14 },
+                { name: 'Artisan Ciabatta Rolls', category: 'Bakery', price: 3.99, qty: '4 ct', emoji: '🥖', shelfLifeDays: 4 },
+                { name: 'Chobani Greek Yogurt', category: 'Dairy & Eggs', price: 4.50, qty: '32 oz', emoji: '🥛', shelfLifeDays: 12 }
             ];
 
             currentScannedItems = sampleReceiptItems;
             
-            document.getElementById("receipt-preview-card").style.display = "block";
+            var previewCard = document.getElementById('receipt-preview-card');
+            if (previewCard) previewCard.style.display = 'block';
             renderScannedItemsTable();
         }
 
         function renderScannedItemsTable() {
-            const table = document.getElementById("receipt-items-table");
-            table.innerHTML = currentScannedItems.map((item, idx) => `
-                <div style="background: var(--bg-card-subtle); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span>${item.emoji}</span>
-                        <div>
-                            <div style="font-size: 12px; font-weight: 700;">${item.name}</div>
-                            <div style="font-size: 10px; color: var(--text-secondary);">${item.category} • Shelf Life: ${item.shelfLifeDays}d</div>
-                        </div>
-                    </div>
-                    <div style="font-size: 13px; font-weight: 700;">$${item.price.toFixed(2)}</div>
-                </div>
-            `).join("");
+            var table = document.getElementById('receipt-items-table');
+            if (!table) return;
+            table.innerHTML = currentScannedItems.map(function(item) {
+                return '<div style="background: var(--bg-card-subtle); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; gap: 6px;">' +
+                    '<div style="display: flex; align-items: center; gap: 8px;">' +
+                        '<span>' + item.emoji + '</span>' +
+                        '<div>' +
+                            '<div style="font-size: 12px; font-weight: 700;">' + item.name + '</div>' +
+                            '<div style="font-size: 10px; color: var(--text-secondary);">' + item.category + ' • Shelf Life: ' + item.shelfLifeDays + 'd</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="font-size: 13px; font-weight: 700;">$' + item.price.toFixed(2) + '</div>' +
+                '</div>';
+            }).join('');
         }
 
         function commitReceiptToInventory() {
-            const store = document.getElementById("receipt-store-select").value;
-            const date = document.getElementById("receipt-date-input").value || new Date().toISOString().split("T")[0];
+            var storeEl = document.getElementById('receipt-store-select');
+            var dateEl = document.getElementById('receipt-date-input');
+            var store = storeEl ? storeEl.value : 'Publix';
+            var date = (dateEl && dateEl.value) ? dateEl.value : new Date().toISOString().split('T')[0];
 
-            let receiptTotal = 0;
-            currentScannedItems.forEach(item => {
+            var receiptTotal = 0;
+            currentScannedItems.forEach(function(item) {
                 receiptTotal += item.price;
                 appState.inventory.push({
-                    id: "inv_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+                    id: 'inv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
                     name: item.name,
                     category: item.category,
                     emoji: item.emoji,
@@ -1880,135 +1907,146 @@
                     qty: item.qty,
                     purchaseDate: date,
                     shelfLifeDays: item.shelfLifeDays,
-                    status: "active",
+                    status: 'active',
                     percentRemaining: 100
                 });
             });
 
             appState.receipts.unshift({
-                id: "rec_" + Date.now(),
+                id: 'rec_' + Date.now(),
                 store: store,
                 date: date,
                 total: Math.round(receiptTotal * 100) / 100,
                 itemCount: currentScannedItems.length,
-                items: currentScannedItems.map(i => `${i.name} ($${i.price.toFixed(2)})`)
+                items: currentScannedItems.map(function(i) { return i.name + ' ($' + i.price.toFixed(2) + ')'; })
             });
 
             saveToStorage();
             cancelReceiptPreview();
             renderAll();
-            alert("Added " + currentScannedItems.length + " items from " + store + " receipt to your pantry!");
-            switchTab("inventory");
+            alert('Added ' + currentScannedItems.length + ' items from ' + store + ' receipt to your pantry!');
+            switchTab('inventory');
         }
 
         function cancelReceiptPreview() {
             currentScannedItems = [];
-            document.getElementById("receipt-preview-card").style.display = "none";
-            document.getElementById("receipt-file-input").value = "";
+            var preview = document.getElementById('receipt-preview-card');
+            var fileInput = document.getElementById('receipt-file-input');
+            if (preview) preview.style.display = 'none';
+            if (fileInput) fileInput.value = '';
         }
 
         function renderReceiptHistory() {
-            const list = document.getElementById("receipt-history-list");
+            var list = document.getElementById('receipt-history-list');
+            if (!list) return;
             if (appState.receipts.length === 0) {
                 list.innerHTML = '<div class="stat-card text-center"><p style="font-size:12px;">No receipt history yet.</p></div>';
                 return;
             }
 
-            list.innerHTML = appState.receipts.map(r => `
-                <div class="stat-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <span class="badge-store">${r.store}</span>
-                            <h4 style="font-size: 14px; font-weight: 700; margin-top: 3px;">$${Number(r.total).toFixed(2)}</h4>
-                            <p style="font-size: 10px; color: var(--text-muted);">${r.date} • ${r.itemCount} items</p>
-                        </div>
-                        <div style="font-size: 11px; color: var(--accent-green); font-weight: 600;">
-                            Archived ✓
-                        </div>
-                    </div>
-                    <div style="margin-top: 6px; font-size: 10px; color: var(--text-secondary); line-height: 1.4;">
-                        ${(r.items || []).join(", ")}
-                    </div>
-                </div>
-            `).join("");
+            list.innerHTML = appState.receipts.map(function(r) {
+                return '<div class="stat-card">' +
+                    '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+                        '<div>' +
+                            '<span class="badge-store">' + r.store + '</span>' +
+                            '<h4 style="font-size: 14px; font-weight: 700; margin-top: 3px;">$' + Number(r.total).toFixed(2) + '</h4>' +
+                            '<p style="font-size: 10px; color: var(--text-muted);">${r.date} • ' + r.itemCount + ' items</p>' +
+                        '</div>' +
+                        '<div style="font-size: 11px; color: var(--accent-green); font-weight: 600;">' +
+                            'Archived ✓' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="margin-top: 6px; font-size: 10px; color: var(--text-secondary); line-height: 1.4;">' +
+                        (r.items || []).join(', ') +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
         function openManualAddModal() {
-            document.getElementById("modal-add-item").classList.add("active");
+            var modal = document.getElementById('modal-add-item');
+            if (modal) modal.classList.add('active');
             autoSuggestShelfLife();
         }
 
         function openAddRestockModal() {
-            document.getElementById("modal-add-restock").classList.add("active");
+            var modal = document.getElementById('modal-add-restock');
+            if (modal) modal.classList.add('active');
         }
 
         function closeModal(id) {
-            document.getElementById(id).classList.remove("active");
+            var modal = document.getElementById(id);
+            if (modal) modal.classList.remove('active');
         }
 
         function autoSuggestShelfLife() {
-            const cat = document.getElementById("manual-category").value;
-            const days = CATEGORY_DEFAULT_SHELF_LIFE[cat] || 7;
-            document.getElementById("manual-shelf-life").value = days;
+            var catEl = document.getElementById('manual-category');
+            var lifeEl = document.getElementById('manual-shelf-life');
+            if (!catEl || !lifeEl) return;
+            var cat = catEl.value;
+            var days = CATEGORY_DEFAULT_SHELF_LIFE[cat] || 7;
+            lifeEl.value = days;
         }
 
         function saveManualItem() {
-            const name = document.getElementById("manual-name").value.trim();
+            var nameEl = document.getElementById('manual-name');
+            var name = nameEl ? nameEl.value.trim() : '';
             if (!name) {
                 alert("Please enter an item name!");
                 return;
             }
 
-            const category = document.getElementById("manual-category").value;
-            const store = document.getElementById("manual-store").value;
-            const price = parseFloat(document.getElementById("manual-price").value) || 3.99;
-            const qty = document.getElementById("manual-qty").value.trim() || "1 ct";
-            const purchaseDate = document.getElementById("manual-purchase-date").value || new Date().toISOString().split("T")[0];
-            const shelfLifeDays = parseInt(document.getElementById("manual-shelf-life").value) || 7;
+            var category = document.getElementById('manual-category').value;
+            var store = document.getElementById('manual-store').value;
+            var price = parseFloat(document.getElementById('manual-price').value) || 3.99;
+            var qty = document.getElementById('manual-qty').value.trim() || '1 ct';
+            var purchaseDate = document.getElementById('manual-purchase-date').value || new Date().toISOString().split('T')[0];
+            var shelfLifeDays = parseInt(document.getElementById('manual-shelf-life').value) || 7;
 
             appState.inventory.push({
-                id: "inv_" + Date.now(),
-                name,
-                category,
-                emoji: EMOJI_MAP[category] || "🥑",
-                store,
-                price,
-                qty,
-                purchaseDate,
-                shelfLifeDays,
-                status: "active",
+                id: 'inv_' + Date.now(),
+                name: name,
+                category: category,
+                emoji: EMOJI_MAP[category] || '🥑',
+                store: store,
+                price: price,
+                qty: qty,
+                purchaseDate: purchaseDate,
+                shelfLifeDays: shelfLifeDays,
+                status: 'active',
                 percentRemaining: 100
             });
 
             saveToStorage();
-            closeModal("modal-add-item");
-            document.getElementById("manual-name").value = "";
+            closeModal('modal-add-item');
+            if (nameEl) nameEl.value = '';
             renderAll();
-            alert("Added " + name + " to active pantry stock!");
+            alert('Added ' + name + ' to active pantry stock!');
         }
 
         function saveCustomRestockItem() {
-            const name = document.getElementById("restock-item-name").value.trim();
+            var nameEl = document.getElementById('restock-item-name');
+            var name = nameEl ? nameEl.value.trim() : '';
             if (!name) {
                 alert("Please enter an item name!");
                 return;
             }
 
-            const category = document.getElementById("restock-item-category").value;
-            const store = document.getElementById("restock-item-store").value;
+            var category = document.getElementById('restock-item-category').value;
+            var store = document.getElementById('restock-item-store').value;
 
             appState.shoppingList.push({
-                id: "shop_" + Date.now(),
-                name,
-                category,
-                store,
+                id: 'shop_' + Date.now(),
+                name: name,
+                category: category,
+                store: store,
                 estPrice: 3.49,
                 bought: false
             });
 
             saveToStorage();
-            closeModal("modal-add-restock");
-            document.getElementById("restock-item-name").value = "";
+            closeModal('modal-add-restock');
+            if (nameEl) nameEl.value = '';
             renderRestock();
         }
 
